@@ -1,0 +1,4711 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>AI Bus • Mini RedBus Booking</title>
+
+<link
+rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:#0f172a;
+}
+
+/* ================= 3D PROFESSIONAL LOGIN ================= */
+
+#loginPage{
+    position:relative;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    padding:30px;
+    overflow:hidden;
+    background:
+        radial-gradient(circle at 15% 20%, rgba(37,99,235,.28), transparent 30%),
+        radial-gradient(circle at 85% 80%, rgba(6,182,212,.22), transparent 32%),
+        linear-gradient(135deg,#020617,#0f172a 48%,#111827);
+}
+
+/* subtle 3D route/map lines */
+#loginPage::before{
+    content:"";
+    position:absolute;
+    inset:-20%;
+    background:
+        linear-gradient(115deg, transparent 48%, rgba(96,165,250,.13) 49%, transparent 50%),
+        linear-gradient(25deg, transparent 48%, rgba(34,211,238,.10) 49%, transparent 50%);
+    background-size:170px 170px, 220px 220px;
+    transform:rotate(-7deg) perspective(700px) rotateX(35deg);
+    animation:routeMove 14s linear infinite;
+    pointer-events:none;
+}
+
+#loginPage::after{
+    content:"";
+    position:absolute;
+    width:420px;
+    height:420px;
+    border:1px solid rgba(56,189,248,.18);
+    border-radius:50%;
+    box-shadow:0 0 60px rgba(37,99,235,.16);
+    transform:translate(-38%,35%);
+    pointer-events:none;
+}
+
+.login-container{
+    position:relative;
+    z-index:2;
+    width:min(920px,100%);
+    min-height:540px;
+    display:grid;
+    grid-template-columns:1.05fr .95fr;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:28px;
+    background:rgba(15,23,42,.62);
+    box-shadow:
+        0 35px 90px rgba(0,0,0,.55),
+        inset 0 1px 0 rgba(255,255,255,.16);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    text-align:center;
+    transform:perspective(1200px) rotateX(1deg);
+}
+
+/* 3D smart-bus side */
+.login-visual{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    padding:45px;
+    overflow:hidden;
+    background:
+        radial-gradient(circle at 50% 45%, rgba(37,99,235,.30), transparent 45%),
+        linear-gradient(145deg,rgba(30,64,175,.18),rgba(8,47,73,.20));
+}
+
+.login-visual h1{
+    color:#fff;
+    font-size:32px;
+    margin-bottom:8px;
+    letter-spacing:.3px;
+}
+
+.login-visual p{
+    color:#cbd5e1;
+    font-size:14px;
+    line-height:1.6;
+    max-width:360px;
+}
+
+.ai-orb{
+    position:absolute;
+    width:260px;
+    height:260px;
+    border-radius:50%;
+    border:1px solid rgba(56,189,248,.20);
+    box-shadow:0 0 70px rgba(37,99,235,.18);
+    animation:orbFloat 5s ease-in-out infinite;
+}
+
+.ai-orb::before,
+.ai-orb::after{
+    content:"";
+    position:absolute;
+    inset:22px;
+    border:1px dashed rgba(125,211,252,.22);
+    border-radius:50%;
+}
+
+.ai-orb::after{
+    inset:55px;
+    border-style:solid;
+}
+
+.bus-3d{
+    position:relative;
+    z-index:2;
+    width:270px;
+    height:135px;
+    margin:35px 0 28px;
+    border-radius:28px 30px 18px 18px;
+    background:linear-gradient(145deg,#38bdf8,#2563eb 58%,#172554);
+    box-shadow:
+        22px 22px 35px rgba(0,0,0,.42),
+        inset 0 4px 8px rgba(255,255,255,.32),
+        inset 0 -8px 14px rgba(0,0,0,.20);
+    transform:perspective(700px) rotateY(-12deg) rotateX(5deg);
+    animation:busFloat 4s ease-in-out infinite;
+}
+
+.bus-3d::before{
+    content:"";
+    position:absolute;
+    top:20px;
+    left:25px;
+    width:205px;
+    height:48px;
+    border-radius:13px;
+    background:linear-gradient(145deg,#e0f2fe,#7dd3fc);
+    box-shadow:inset 0 -5px 8px rgba(15,23,42,.20);
+}
+
+.bus-3d::after{
+    content:"AI • SMART BUS";
+    position:absolute;
+    left:58px;
+    bottom:34px;
+    color:white;
+    font-size:11px;
+    font-weight:bold;
+    letter-spacing:1.5px;
+}
+
+.bus-wheel{
+    position:absolute;
+    bottom:-18px;
+    width:50px;
+    height:50px;
+    border-radius:50%;
+    background:#020617;
+    border:9px solid #334155;
+    box-shadow:0 5px 10px rgba(0,0,0,.45);
+}
+.bus-wheel.left{left:42px}
+.bus-wheel.right{right:42px}
+
+.ai-points{
+    position:absolute;
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background:#67e8f9;
+    box-shadow:0 0 18px #22d3ee;
+    animation:pulseAI 1.8s infinite;
+}
+.ai-p1{top:18%;left:18%}
+.ai-p2{top:27%;right:16%;animation-delay:.5s}
+.ai-p3{bottom:18%;left:22%;animation-delay:1s}
+.ai-p4{bottom:24%;right:20%;animation-delay:1.4s}
+
+/* glass login card */
+.login-form{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:48px 50px;
+    background:rgba(255,255,255,.07);
+    border-left:1px solid rgba(255,255,255,.10);
+}
+
+.login-form .login-logo{
+    width:68px;
+    height:68px;
+    margin:0 auto 18px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    border-radius:20px;
+    background:linear-gradient(145deg,#2563eb,#06b6d4);
+    color:white;
+    font-size:31px;
+    box-shadow:0 15px 35px rgba(37,99,235,.35);
+    transform:perspective(400px) rotateX(5deg);
+}
+
+.login-form h2{
+    margin-bottom:7px;
+    color:#fff;
+    font-size:28px;
+}
+
+.login-subtitle{
+    margin-bottom:25px;
+    color:#94a3b8;
+    font-size:13px;
+}
+
+.input-group{
+    position:relative;
+    margin:10px 0;
+}
+
+.input-group .input-icon{
+    position:absolute;
+    left:15px;
+    top:50%;
+    transform:translateY(-50%);
+    z-index:1;
+}
+
+.login-container input{
+    width:100%;
+    padding:14px 44px;
+    margin:0;
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:13px;
+    outline:none;
+    color:white;
+    background:rgba(2,6,23,.48);
+    box-shadow:inset 0 2px 8px rgba(0,0,0,.15);
+    transition:.25s;
+}
+
+.login-container input::placeholder{color:#94a3b8}
+
+.login-container input:focus{
+    border-color:#38bdf8;
+    box-shadow:0 0 0 3px rgba(56,189,248,.12),0 8px 22px rgba(0,0,0,.18);
+}
+
+.password-toggle{
+    position:absolute;
+    right:12px;
+    top:50%;
+    transform:translateY(-50%);
+    border:0;
+    background:transparent;
+    color:#94a3b8;
+    cursor:pointer;
+    font-size:16px;
+}
+
+.login-container button{
+    width:100%;
+    padding:13px;
+    margin-top:10px;
+    border:none;
+    border-radius:13px;
+    color:white;
+    cursor:pointer;
+    font-size:15px;
+    font-weight:bold;
+    transition:transform .2s,box-shadow .2s,filter .2s;
+}
+
+.login-container button:hover{
+    transform:translateY(-3px);
+}
+
+.login-btn{
+    background:linear-gradient(145deg,#3b82f6,#1d4ed8);
+    box-shadow:0 10px 0 #173b91,0 18px 28px rgba(37,99,235,.30);
+}
+
+.login-btn:hover{
+    box-shadow:0 7px 0 #173b91,0 20px 34px rgba(37,99,235,.40);
+}
+
+.login-btn:active{
+    transform:translateY(4px);
+    box-shadow:0 3px 0 #173b91,0 8px 16px rgba(37,99,235,.25);
+}
+
+.register-btn{
+    background:rgba(22,163,74,.18);
+    border:1px solid rgba(74,222,128,.35) !important;
+}
+
+.exit-btn{
+    background:rgba(220,38,38,.14);
+    border:1px solid rgba(248,113,113,.30) !important;
+}
+
+#message{
+    min-height:20px;
+    margin-top:12px;
+    color:#fca5a5;
+    font-size:13px;
+}
+
+.login-tagline{
+    margin-top:18px;
+    color:#64748b;
+    font-size:11px;
+    letter-spacing:1px;
+}
+
+@keyframes routeMove{
+    from{background-position:0 0,0 0}
+    to{background-position:170px 170px,-220px 220px}
+}
+@keyframes busFloat{
+    0%,100%{transform:perspective(700px) rotateY(-12deg) rotateX(5deg) translateY(0)}
+    50%{transform:perspective(700px) rotateY(-12deg) rotateX(5deg) translateY(-10px)}
+}
+@keyframes orbFloat{
+    0%,100%{transform:scale(1) rotate(0deg)}
+    50%{transform:scale(1.05) rotate(8deg)}
+}
+@keyframes pulseAI{
+    0%,100%{opacity:.45;transform:scale(.8)}
+    50%{opacity:1;transform:scale(1.25)}
+}
+
+@media(max-width:760px){
+    #loginPage{padding:16px}
+    .login-container{
+        grid-template-columns:1fr;
+        max-width:500px;
+        min-height:auto;
+    }
+    .login-visual{
+        min-height:330px;
+        padding:28px;
+    }
+    .login-visual h1{font-size:25px}
+    .bus-3d{width:220px;height:110px}
+    .bus-3d::before{width:165px;height:40px}
+    .login-form{
+        padding:35px 28px;
+        border-left:0;
+        border-top:1px solid rgba(255,255,255,.10);
+    }
+}
+
+/* ================= PROFESSIONAL DASHBOARD ================= */
+#dashboard{
+    display:none;
+    min-height:100vh;
+    background:linear-gradient(135deg,#eef4ff 0%,#f8fafc 45%,#eef2ff 100%);
+    color:#0f172a;
+}
+
+.top-nav{
+    position:sticky;
+    top:0;
+    z-index:1000;
+    min-height:74px;
+    padding:0 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:18px;
+    background:rgba(15,23,42,.92);
+    backdrop-filter:blur(18px);
+    border-bottom:1px solid rgba(255,255,255,.12);
+    box-shadow:0 12px 35px rgba(15,23,42,.16);
+}
+
+.brand{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    color:#fff;
+    font-weight:800;
+    white-space:nowrap;
+}
+.brand-icon{
+    width:42px;height:42px;border-radius:13px;
+    display:grid;place-items:center;font-size:22px;
+    background:linear-gradient(145deg,#2563eb,#7c3aed);
+    box-shadow:0 8px 22px rgba(37,99,235,.4);
+}
+.brand small{display:block;color:#94a3b8;font-size:10px;letter-spacing:1.5px;margin-top:2px}
+
+.nav-links{display:flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.nav-link{
+    border:0;background:transparent;color:#cbd5e1;text-decoration:none;
+    padding:10px 12px;border-radius:11px;cursor:pointer;font-size:13px;font-weight:700;
+    transition:.25s ease;white-space:nowrap;
+}
+.nav-link:hover,.nav-link.active{color:#fff;background:rgba(59,130,246,.22);transform:translateY(-1px)}
+.nav-link.logout{color:#fca5a5}
+.nav-link.logout:hover{background:rgba(239,68,68,.18);color:#fecaca}
+
+.main{max-width:1500px;margin:0 auto;padding:26px}
+.topbar{
+    padding:22px 24px;margin-bottom:22px;border-radius:22px;
+    background:linear-gradient(135deg,rgba(255,255,255,.9),rgba(239,246,255,.8));
+    border:1px solid rgba(148,163,184,.22);
+    box-shadow:0 18px 45px rgba(15,23,42,.08);
+    display:flex;align-items:center;justify-content:space-between;gap:18px;
+}
+.topbar h1{font-size:25px;color:#0f172a}
+.topbar p{margin-top:6px;color:#64748b;font-size:13px}
+.status-pill{padding:9px 13px;border-radius:999px;background:#ecfdf5;color:#047857;font-weight:800;font-size:12px;box-shadow:inset 0 0 0 1px #a7f3d0}
+
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.card{
+    position:relative;overflow:hidden;background:rgba(255,255,255,.86);
+    padding:22px;border-radius:20px;text-align:left;
+    border:1px solid rgba(148,163,184,.2);box-shadow:0 15px 35px rgba(15,23,42,.08);
+    transition:transform .25s ease,box-shadow .25s ease;
+}
+.card::after{content:"";position:absolute;right:-35px;top:-35px;width:100px;height:100px;border-radius:50%;background:rgba(59,130,246,.08)}
+.card:hover{transform:translateY(-6px);box-shadow:0 22px 45px rgba(37,99,235,.15)}
+.card-icon{font-size:25px;margin-bottom:12px}
+.card h3{margin-bottom:6px;color:#64748b;font-size:13px}
+.card h1{font-size:32px;color:#0f172a}
+.card span{font-size:11px;color:#94a3b8}
+
+.section{display:none}.active-section{display:block;animation:sectionIn .35s ease}
+@keyframes sectionIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.dashboard-grid{display:grid;grid-template-columns:1.4fr .8fr;gap:20px;margin-top:20px}
+.panel{background:rgba(255,255,255,.9);border:1px solid rgba(148,163,184,.2);border-radius:22px;padding:22px;box-shadow:0 15px 35px rgba(15,23,42,.07)}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.panel-head h2{font-size:18px;color:#0f172a}.panel-head p{font-size:12px;color:#64748b;margin-top:4px}
+
+.prediction{margin-top:20px;background:rgba(255,255,255,.92);padding:24px;border-radius:22px;border:1px solid rgba(148,163,184,.2);box-shadow:0 15px 35px rgba(15,23,42,.07)}
+.prediction h2{margin-bottom:15px;color:#0f172a}.prediction input{padding:13px 15px;width:260px;border:1px solid #cbd5e1;border-radius:12px;outline:none;background:#f8fafc}.prediction input:focus{border-color:#3b82f6;box-shadow:0 0 0 4px rgba(59,130,246,.1)}
+.prediction button,.predict-btn{padding:13px 20px;background:linear-gradient(135deg,#2563eb,#4f46e5);color:white;border:none;cursor:pointer;margin-left:8px;border-radius:12px;font-weight:800;box-shadow:0 8px 18px rgba(37,99,235,.25);transition:.2s}.prediction button:hover,.predict-btn:hover{transform:translateY(-2px);box-shadow:0 12px 25px rgba(37,99,235,.32)}
+#result,#predictionResult{margin-top:18px;color:#2563eb;line-height:1.8}
+
+.live-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.live-search{position:relative;flex:1;min-width:220px}
+.live-search input{width:100%;padding:12px 14px 12px 40px;border:1px solid #dbe3ef;border-radius:13px;background:#f8fafc;outline:none;font-size:12px;transition:.2s}
+.live-search input:focus{border-color:#3b82f6;box-shadow:0 0 0 4px rgba(59,130,246,.1);background:white}
+.live-search span{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px}
+.live-count{font-size:11px;font-weight:800;color:#64748b;background:#f1f5f9;padding:8px 11px;border-radius:999px}
+.live-list{display:grid;gap:10px;max-height:420px;overflow-y:auto;padding:2px 4px 2px 0}
+.live-row{display:grid;grid-template-columns:72px 1.25fr 1fr 92px 80px;align-items:center;gap:10px;padding:13px;border-radius:15px;background:linear-gradient(135deg,#f8fafc,#ffffff);border:1px solid #e2e8f0;font-size:12px;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
+.live-row:hover{background:#eff6ff;transform:translateY(-2px) translateX(2px);box-shadow:0 10px 22px rgba(37,99,235,.10);border-color:#bfdbfe}
+.bus-no{font-weight:900;color:#1d4ed8;background:#dbeafe;border:1px solid #bfdbfe;padding:7px 8px;border-radius:10px;text-align:center;box-shadow:0 4px 10px rgba(37,99,235,.08)}
+.route{font-weight:800;color:#0f172a}
+.muted{color:#64748b}
+.status-badge{padding:6px 9px;border-radius:999px;font-size:10px;font-weight:900;text-align:center;white-space:nowrap}
+.status-running{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0}
+.status-stopped{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}
+.eta-badge{font-weight:900;color:#4338ca;background:#eef2ff;border:1px solid #c7d2fe;padding:7px 8px;border-radius:10px;text-align:center;white-space:nowrap}
+.eta-loading{opacity:.65}
+.live-empty{text-align:center;padding:24px;color:#64748b;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:14px}
+
+
+.quick-actions{display:grid;gap:10px}.action-btn{border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;padding:13px;border-radius:13px;text-align:left;font-weight:800;cursor:pointer;transition:.2s}.action-btn:hover{transform:translateX(4px);background:#dbeafe}
+
+.map-header,.report{background:rgba(255,255,255,.92);padding:22px;border-radius:22px;margin-bottom:20px;border:1px solid rgba(148,163,184,.2);box-shadow:0 15px 35px rgba(15,23,42,.07)}
+.map-header h2,.report h2{color:#0f172a;margin-bottom:8px}.map-header p{color:#64748b}
+#map{width:100%;height:550px;border-radius:20px;overflow:hidden;box-shadow:0 15px 35px rgba(15,23,42,.13)}
+.bus-panel{background:rgba(255,255,255,.92);margin-top:20px;padding:22px;border-radius:22px;border:1px solid rgba(148,163,184,.2);box-shadow:0 15px 35px rgba(15,23,42,.07)}
+.bus-panel h2{color:#0f172a;margin-bottom:15px}.bus{display:flex;justify-content:space-between;padding:13px;margin-bottom:8px;background:#f8fafc;border-radius:12px}.running{color:#15803d;font-weight:bold}.stopped{color:#b91c1c;font-weight:bold}
+
+.chatbot{background:rgba(255,255,255,.94);border-radius:22px;overflow:hidden;box-shadow:0 18px 45px rgba(15,23,42,.1);max-width:850px;height:620px;display:flex;flex-direction:column;border:1px solid rgba(148,163,184,.2)}
+.chat-header{background:linear-gradient(135deg,#1d4ed8,#4f46e5);color:white;padding:20px;display:flex;align-items:center;gap:12px}.bot-icon{width:48px;height:48px;background:white;color:#2563eb;border-radius:15px;display:flex;justify-content:center;align-items:center;font-size:24px;box-shadow:0 8px 20px rgba(15,23,42,.18)}.chat-header h2{color:white;margin:0}.chat-header p{margin-top:4px;font-size:12px}.quick-questions{padding:12px 15px;display:flex;gap:8px;overflow-x:auto;background:white;border-bottom:1px solid #e2e8f0}.quick-btn{white-space:nowrap;border:1px solid #2563eb;background:white;color:#2563eb;padding:8px 12px;border-radius:20px;cursor:pointer}.quick-btn:hover{background:#2563eb;color:white}.chat-messages{flex:1;padding:20px;overflow-y:auto;background:#f8fafc}.message{max-width:75%;padding:12px 15px;margin-bottom:15px;border-radius:15px;line-height:1.5}.bot-message{background:#e2e8f0;color:#1e293b;border-bottom-left-radius:4px}.user-message{background:#2563eb;color:white;margin-left:auto;border-bottom-right-radius:4px}.chat-input-area{padding:15px;border-top:1px solid #e2e8f0;display:flex;gap:10px;background:white}.chat-input{flex:1;padding:13px;border:1px solid #cbd5e1;border-radius:25px;outline:none}.chat-input:focus{border-color:#2563eb}.send-btn{width:50px;border:none;border-radius:50%;background:#2563eb;color:white;font-size:18px;cursor:pointer}.send-btn:hover{background:#1d4ed8}
+
+.report-item{padding:15px;margin-bottom:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;display:flex;justify-content:space-between}.chart{display:flex;align-items:flex-end;gap:28px;height:210px;padding:20px;background:#f8fafc;border-radius:18px;margin:20px 0}.bar-wrap{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:8px}.bar{width:min(70px,70%);min-height:8px;border-radius:10px 10px 4px 4px;background:linear-gradient(180deg,#60a5fa,#4f46e5);transition:height .6s ease;box-shadow:0 8px 18px rgba(79,70,229,.18)}.bar-label{font-size:11px;color:#64748b;font-weight:800}.bar-value{font-size:12px;font-weight:900;color:#0f172a}
+
+.bus-images-section{margin-top:20px;background:rgba(255,255,255,.92);padding:25px;border-radius:22px;border:1px solid rgba(148,163,184,.2);box-shadow:0 15px 35px rgba(15,23,42,.07)}.bus-images-section h2{color:#0f172a;margin-bottom:20px}.bus-image-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}.bus-image-card{background:#f8fafc;border-radius:15px;overflow:hidden;box-shadow:0 8px 20px rgba(15,23,42,.09);transition:.25s}.bus-image-card:hover{transform:translateY(-5px) scale(1.01);box-shadow:0 15px 28px rgba(15,23,42,.13)}.bus-image-card img{width:100%;height:150px;object-fit:cover;display:block}.bus-image-card.image-missing{background:linear-gradient(135deg,#dbeafe,#eff6ff)}.bus-image-card.image-missing::before{content:"🚌";height:150px;display:flex;align-items:center;justify-content:center;font-size:70px;background:linear-gradient(135deg,#dbeafe,#e0f2fe)}.bus-image-info{padding:12px}.bus-image-info h3{color:#1e3a8a;margin-bottom:5px}.bus-image-info p{color:#64748b;font-size:14px}
+
+@media(max-width:1050px){.cards{grid-template-columns:repeat(2,1fr)}.dashboard-grid{grid-template-columns:1fr}.nav-links{gap:2px}.nav-link{padding:9px 8px;font-size:12px}.top-nav{padding:0 16px}.main{padding:18px}}
+@media(max-width:700px){.top-nav{position:relative;align-items:flex-start;padding:14px;flex-direction:column}.nav-links{width:100%;overflow-x:auto;justify-content:flex-start;flex-wrap:nowrap}.main{padding:14px}.topbar{align-items:flex-start;flex-direction:column}.topbar h1{font-size:20px}.cards{grid-template-columns:1fr}.prediction input{width:100%;margin-bottom:10px}.prediction button{margin:0}.live-toolbar{align-items:stretch;flex-direction:column}.live-search{min-width:0;width:100%}.live-list{max-height:520px}.live-row{grid-template-columns:58px 1fr;gap:8px;padding:12px}.live-row .status-badge{justify-self:start}.live-row .eta-badge{justify-self:start}.live-row .muted{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.live-row .location-cell{grid-column:2}.live-row .status-badge{grid-column:2}.live-row .eta-badge{grid-column:2}#map{height:400px}.chatbot{height:560px}.chart{gap:12px}}
+
+/* ======================================================
+   ENHANCED LIVE MAP
+====================================================== */
+.map-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:15px}.map-live-pill{display:inline-flex;align-items:center;gap:7px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;padding:8px 12px;border-radius:999px;font-size:10px;font-weight:900;white-space:nowrap}.map-live-pill span{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 5px rgba(34,197,94,.12);animation:mapPulse 1.5s infinite}.map-tools{display:flex;align-items:center;gap:10px;margin-top:18px;flex-wrap:wrap}.map-search-wrap{flex:1;min-width:240px;display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #dbe3ef;border-radius:13px;padding:0 12px;box-shadow:inset 0 1px 2px rgba(15,23,42,.03)}.map-search-wrap input{border:0;outline:0;background:transparent;width:100%;padding:12px 4px;font-size:13px;color:#0f172a}.map-reset-btn{border:0;background:#0f172a;color:white;padding:12px 15px;border-radius:13px;font-weight:800;cursor:pointer;transition:.2s}.map-reset-btn:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(15,23,42,.18)}.map-counts{display:flex;gap:7px}.map-count{padding:10px 12px;border-radius:12px;font-size:11px;font-weight:800}.running-count{background:#ecfdf5;color:#15803d}.stopped-count{background:#fef2f2;color:#b91c1c}.map-count b{margin-left:3px}.map-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:16px;align-items:stretch}.map-card{min-width:0;background:white;border:1px solid rgba(148,163,184,.2);border-radius:22px;overflow:hidden;box-shadow:0 15px 35px rgba(15,23,42,.08)}#map{height:600px;border-radius:0;box-shadow:none}.map-legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:11px 14px;border-top:1px solid #e2e8f0;background:#fff;color:#64748b;font-size:10px;font-weight:700}.legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px}.running-dot{background:#22c55e}.stopped-dot{background:#ef4444}.map-detail-card{background:linear-gradient(180deg,#ffffff,#f8fbff);border:1px solid rgba(148,163,184,.2);border-radius:22px;padding:18px;box-shadow:0 15px 35px rgba(15,23,42,.08);min-height:300px}.detail-empty{text-align:center;padding:55px 15px;color:#64748b}.detail-empty-icon{font-size:42px;margin-bottom:10px}.detail-empty h3{color:#0f172a;margin:0 0 7px}.detail-empty p{font-size:12px;line-height:1.6}.bus-detail-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}.bus-detail-id{display:flex;align-items:center;gap:10px}.detail-bus-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;background:#eff6ff}.detail-bus-id{font-size:17px;font-weight:950;color:#0f172a}.detail-route{font-size:11px;color:#64748b;margin-top:2px}.detail-status{padding:6px 9px;border-radius:999px;font-size:10px;font-weight:900}.detail-running{background:#dcfce7;color:#15803d}.detail-stopped{background:#fee2e2;color:#b91c1c}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.detail-item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:13px;padding:11px}.detail-item small{display:block;color:#94a3b8;font-size:9px;font-weight:800;text-transform:uppercase;margin-bottom:4px}.detail-item b{font-size:12px;color:#0f172a}.detail-eta{margin-top:10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:14px}.detail-eta small{display:block;color:#2563eb;font-weight:900;font-size:9px;text-transform:uppercase}.detail-eta b{display:block;color:#1d4ed8;font-size:24px;margin-top:2px}.map-bus-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.bus-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}.bus-panel-head h2{margin-bottom:4px}.bus-panel-head p{color:#64748b;font-size:11px}.map-list-count{background:#eff6ff;color:#2563eb;padding:7px 10px;border-radius:999px;font-size:10px;font-weight:900}.map-bus-item{display:grid;grid-template-columns:58px 1fr auto;align-items:center;gap:10px;padding:12px;border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc;cursor:pointer;transition:.22s}.map-bus-item:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(15,23,42,.08);background:#fff}.map-bus-number{background:#2563eb;color:white;border-radius:10px;padding:7px 5px;text-align:center;font-size:10px;font-weight:950}.map-bus-name{font-size:11px;font-weight:900;color:#0f172a}.map-bus-location{font-size:10px;color:#64748b;margin-top:3px}.map-bus-right{text-align:right}.map-bus-status{display:inline-block;padding:5px 7px;border-radius:999px;font-size:9px;font-weight:900}.map-bus-eta{display:block;margin-top:5px;color:#2563eb;font-size:10px;font-weight:900}.map-marker-wrap{background:transparent;border:0}.custom-bus-marker{position:relative;width:42px;height:42px;border-radius:50% 50% 50% 5px;transform:rotate(-45deg);display:grid;place-items:center;border:3px solid white;box-shadow:0 6px 15px rgba(15,23,42,.28)}.custom-bus-marker .marker-bus{transform:rotate(45deg);font-size:18px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}.marker-running{background:#16a34a}.marker-stopped{background:#dc2626}.marker-bus-no{position:absolute;transform:rotate(45deg);bottom:-12px;background:#0f172a;color:#fff;border-radius:7px;padding:2px 4px;font-size:7px;font-weight:900;white-space:nowrap;border:1px solid white}.route-line-running{stroke-dasharray:10 8;animation:routeDash 1.2s linear infinite}.route-line-stopped{stroke-dasharray:5 7;opacity:.5}.leaflet-popup-content-wrapper{border-radius:15px}.leaflet-popup-content{margin:12px;font-size:12px}.map-popup-title{font-weight:950;color:#0f172a;font-size:13px}.map-popup-status{margin-top:6px;font-weight:900}.map-popup-eta{margin-top:5px;color:#2563eb;font-weight:900}@keyframes mapPulse{50%{opacity:.45;transform:scale(.8)}}@keyframes routeDash{to{stroke-dashoffset:-18}}
+
+@media(max-width:900px){.map-layout{grid-template-columns:1fr}.map-detail-card{min-height:260px}.map-bus-list{grid-template-columns:1fr}}
+@media(max-width:700px){.map-title-row{flex-direction:column}.map-tools{align-items:stretch}.map-search-wrap{min-width:0}.map-reset-btn{width:100%}.map-counts{width:100%}.map-count{flex:1;text-align:center}#map{height:430px}.map-legend{font-size:9px;gap:9px}.map-detail-card{padding:14px}.map-bus-list{grid-template-columns:1fr}.map-bus-item{grid-template-columns:52px 1fr auto}.map-panel{} }
+
+/* ======================================================
+   PREMIUM DASHBOARD / PREDICTION / AI / REPORTS
+====================================================== */
+.premium-hero{position:relative;overflow:hidden;margin-bottom:20px;padding:28px;border-radius:24px;background:linear-gradient(135deg,#0f172a 0%,#172554 52%,#1e3a8a 100%);color:#fff;box-shadow:0 22px 50px rgba(15,23,42,.18)}
+.premium-hero:before,.premium-hero:after{content:"";position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.12);pointer-events:none}
+.premium-hero:before{width:260px;height:260px;right:-80px;top:-120px}.premium-hero:after{width:180px;height:180px;right:90px;bottom:-120px}
+.hero-content{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:25px}
+.hero-kicker{font-size:10px;letter-spacing:2px;color:#93c5fd;font-weight:900;margin-bottom:8px}.premium-hero h2{font-size:27px;margin-bottom:7px}.premium-hero p{color:#cbd5e1;font-size:13px;line-height:1.6;max-width:700px}
+.hero-live{padding:10px 14px;border-radius:999px;background:rgba(34,197,94,.13);border:1px solid rgba(134,239,172,.25);font-size:11px;font-weight:900;white-space:nowrap}.hero-live i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ade80;margin-right:7px;box-shadow:0 0 0 5px rgba(74,222,128,.12);animation:mapPulse 1.5s infinite}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:20px}.kpi-card{position:relative;overflow:hidden;background:rgba(255,255,255,.92);border:1px solid rgba(148,163,184,.22);border-radius:20px;padding:19px;box-shadow:0 12px 30px rgba(15,23,42,.07);transition:.25s}.kpi-card:hover{transform:translateY(-5px);box-shadow:0 20px 38px rgba(37,99,235,.12)}.kpi-top{display:flex;justify-content:space-between;align-items:center}.kpi-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:#eff6ff;font-size:20px}.kpi-label{color:#64748b;font-size:11px;font-weight:800}.kpi-value{font-size:30px;font-weight:950;color:#0f172a;margin-top:12px}.kpi-meta{font-size:10px;color:#94a3b8;margin-top:5px}.kpi-badge{font-size:9px;font-weight:900;padding:5px 8px;border-radius:999px;background:#ecfdf5;color:#15803d}
+.section-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:18px;margin-bottom:20px}.premium-panel{background:rgba(255,255,255,.94);border:1px solid rgba(148,163,184,.2);border-radius:22px;padding:21px;box-shadow:0 14px 34px rgba(15,23,42,.07)}.premium-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}.premium-panel-head h3{font-size:17px;color:#0f172a}.premium-panel-head p{font-size:11px;color:#64748b;margin-top:4px}.panel-tag{padding:6px 9px;border-radius:999px;background:#eff6ff;color:#2563eb;font-size:9px;font-weight:900}
+.activity-list{display:grid;gap:9px}.activity-row{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:10px;padding:11px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:13px}.activity-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#fff;border:1px solid #e2e8f0}.activity-title{font-size:11px;font-weight:900;color:#0f172a}.activity-sub{font-size:10px;color:#64748b;margin-top:3px}.activity-time{font-size:9px;color:#94a3b8;font-weight:700}
+.health-list{display:grid;gap:13px}.health-row{display:grid;grid-template-columns:1fr 80px;gap:10px;align-items:center}.health-name{font-size:11px;font-weight:800;color:#334155}.health-value{text-align:right;font-size:10px;font-weight:900;color:#15803d}.health-track{grid-column:1/-1;height:7px;border-radius:99px;background:#e2e8f0;overflow:hidden;margin-top:-7px}.health-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#22c55e,#3b82f6);animation:healthGrow .8s ease}.health-fill.orange{background:linear-gradient(90deg,#f59e0b,#ef4444)}@keyframes healthGrow{from{width:0}}
+.prediction-premium{display:grid;grid-template-columns:1fr .85fr;gap:18px;align-items:stretch}.prediction-form-card{background:linear-gradient(145deg,#ffffff,#f8fbff);border:1px solid #dbeafe;border-radius:20px;padding:24px}.prediction-form-card h2{font-size:21px;color:#0f172a;margin-bottom:8px}.prediction-form-card>p{font-size:12px;color:#64748b;line-height:1.6;margin-bottom:18px}.predict-input-row{display:flex;gap:9px}.predict-input-row input{flex:1;width:auto!important;margin:0!important}.predict-input-row button{margin:0!important;white-space:nowrap}.prediction-features{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:17px}.feature-chip{padding:10px;border-radius:12px;background:#f1f5f9;border:1px solid #e2e8f0;text-align:center;font-size:9px;font-weight:900;color:#475569}.prediction-result-card{position:relative;overflow:hidden;border-radius:20px;padding:24px;background:linear-gradient(145deg,#eff6ff,#eef2ff);border:1px solid #bfdbfe;display:flex;flex-direction:column;justify-content:center}.prediction-result-card:after{content:"🤖";position:absolute;right:14px;top:12px;font-size:34px;opacity:.08}.result-label{font-size:9px;font-weight:900;letter-spacing:1.3px;color:#2563eb}.result-main{font-size:34px;font-weight:950;color:#1d4ed8;margin:8px 0}.result-note{font-size:11px;color:#64748b;line-height:1.6}.result-placeholder{font-size:14px;color:#64748b;font-weight:700;line-height:1.6}
+.ai-layout{display:grid;grid-template-columns:280px minmax(0,850px);gap:18px;align-items:stretch}.ai-side{background:linear-gradient(145deg,#0f172a,#1e3a8a);border-radius:22px;padding:20px;color:white;box-shadow:0 18px 40px rgba(15,23,42,.14)}.ai-avatar{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);font-size:29px;margin-bottom:18px}.ai-side h3{font-size:19px}.ai-side>p{font-size:11px;color:#cbd5e1;line-height:1.6;margin-top:7px}.ai-status{display:inline-flex;align-items:center;gap:6px;margin-top:14px;padding:7px 10px;border-radius:999px;background:rgba(34,197,94,.12);color:#86efac;font-size:9px;font-weight:900}.ai-status i{width:7px;height:7px;border-radius:50%;background:#4ade80}.ai-capabilities{margin-top:22px;display:grid;gap:9px}.ai-capability{padding:10px;border-radius:11px;background:rgba(255,255,255,.06);font-size:10px;color:#dbeafe}.ai-toolbar{display:flex;justify-content:flex-end;padding:9px 15px;border-bottom:1px solid #e2e8f0;background:#fff}.clear-chat-btn{border:1px solid #fecaca;background:#fff5f5;color:#b91c1c;padding:7px 10px;border-radius:9px;font-size:10px;font-weight:800;cursor:pointer}
+.report-hero{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:24px;border-radius:22px;background:linear-gradient(135deg,#0f172a,#312e81);color:white;margin-bottom:18px;box-shadow:0 18px 42px rgba(15,23,42,.16)}.report-hero h2{color:white!important;margin:0 0 6px!important}.report-hero p{color:#cbd5e1;font-size:11px}.report-refresh{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:white;padding:9px 12px;border-radius:10px;font-weight:800;cursor:pointer}.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}.analytics-card{background:rgba(255,255,255,.94);border:1px solid rgba(148,163,184,.2);border-radius:20px;padding:20px;box-shadow:0 13px 32px rgba(15,23,42,.07)}.analytics-card h3{font-size:16px;color:#0f172a;margin-bottom:5px}.analytics-card>p{font-size:10px;color:#64748b}.metric-row{margin-top:17px}.metric-head{display:flex;justify-content:space-between;font-size:10px;font-weight:900;color:#475569;margin-bottom:6px}.metric-track{height:9px;border-radius:99px;background:#e2e8f0;overflow:hidden}.metric-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#2563eb,#7c3aed);transition:width .7s ease}.report-table-wrap{overflow-x:auto;margin-top:15px}.report-table{width:100%;border-collapse:separate;border-spacing:0;font-size:10px}.report-table th{text-align:left;padding:10px;background:#f8fafc;color:#64748b;font-size:9px;text-transform:uppercase}.report-table td{padding:11px;border-top:1px solid #e2e8f0;color:#334155}.report-table th:first-child{border-radius:10px 0 0 0}.report-table th:last-child{border-radius:0 10px 0 0}.mini-status{padding:5px 7px;border-radius:999px;font-size:8px;font-weight:900}.mini-running{background:#dcfce7;color:#15803d}.mini-stopped{background:#fee2e2;color:#b91c1c}
+@media(max-width:1000px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.prediction-premium,.ai-layout,.analytics-grid{grid-template-columns:1fr}.ai-side{min-height:auto}.section-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.premium-hero{padding:21px}.hero-content{align-items:flex-start;flex-direction:column}.premium-hero h2{font-size:22px}.kpi-grid{grid-template-columns:1fr}.prediction-form-card,.prediction-result-card{padding:18px}.predict-input-row{flex-direction:column}.prediction-features{grid-template-columns:1fr}.report-hero{align-items:flex-start;flex-direction:column}.report-refresh{width:100%}.activity-row{grid-template-columns:36px 1fr}.activity-time{display:none}}
+
+
+/* ================= ADMIN DASHBOARD ================= */
+.admin-hero{
+    background:linear-gradient(135deg,#111827,#1e3a8a,#312e81);
+    color:#fff;padding:28px;border-radius:24px;margin-bottom:20px;
+    box-shadow:0 20px 45px rgba(15,23,42,.18);
+}
+.admin-hero h2{font-size:27px;margin:7px 0}
+.admin-hero p{color:#cbd5e1;font-size:12px;line-height:1.6;max-width:800px}
+.admin-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:20px}
+.admin-kpi{
+    background:rgba(255,255,255,.94);border:1px solid rgba(148,163,184,.2);
+    border-radius:20px;padding:20px;box-shadow:0 14px 32px rgba(15,23,42,.07)
+}
+.admin-kpi-label{font-size:10px;color:#64748b;font-weight:900}
+.admin-kpi-value{font-size:30px;color:#0f172a;font-weight:950;margin-top:10px}
+.admin-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-bottom:18px}
+.admin-panel{
+    background:rgba(255,255,255,.94);border:1px solid rgba(148,163,184,.2);
+    border-radius:22px;padding:20px;box-shadow:0 14px 34px rgba(15,23,42,.07)
+}
+.admin-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:15px}
+.admin-panel-head h3{font-size:17px;color:#0f172a}
+.admin-panel-head p{font-size:10px;color:#64748b;margin-top:4px}
+.admin-refresh{
+    border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;
+    padding:8px 11px;border-radius:10px;font-size:10px;font-weight:900;cursor:pointer
+}
+.admin-refresh:hover{background:#dbeafe}
+.admin-bookings{display:grid;gap:9px;max-height:430px;overflow:auto}
+.admin-booking-row{
+    display:grid;grid-template-columns:90px 1fr 120px 85px;
+    gap:10px;align-items:center;padding:12px;border:1px solid #e2e8f0;
+    border-radius:13px;background:#f8fafc
+}
+.admin-booking-id{font-weight:950;color:#1d4ed8;font-size:10px}
+.admin-booking-main{font-size:11px;font-weight:900;color:#0f172a}
+.admin-booking-sub{font-size:9px;color:#64748b;margin-top:3px}
+.admin-booking-fare{font-size:11px;font-weight:900;color:#047857}
+.admin-booking-status{
+    padding:6px 8px;border-radius:999px;text-align:center;font-size:8px;font-weight:900
+}
+.admin-confirmed{background:#dcfce7;color:#15803d}
+.admin-cancelled{background:#fee2e2;color:#b91c1c}
+.admin-bus-status-list{display:grid;gap:10px}
+.admin-status-row{
+    display:grid;grid-template-columns:55px 1fr auto;gap:10px;align-items:center;
+    padding:11px;border:1px solid #e2e8f0;border-radius:13px;background:#f8fafc
+}
+.admin-bus-no{background:#dbeafe;color:#1d4ed8;border-radius:9px;padding:7px 5px;text-align:center;font-size:9px;font-weight:950}
+.admin-bus-name{font-size:10px;font-weight:900;color:#0f172a}
+.admin-bus-loc{font-size:9px;color:#64748b;margin-top:3px}
+.admin-mini-pill{padding:6px 8px;border-radius:999px;font-size:8px;font-weight:900}
+.admin-running{background:#dcfce7;color:#15803d}
+.admin-stopped{background:#fee2e2;color:#b91c1c}
+.admin-note{
+    padding:12px;border-radius:12px;background:#eff6ff;border:1px solid #bfdbfe;
+    color:#1e3a8a;font-size:10px;line-height:1.6;margin-top:14px
+}
+@media(max-width:1000px){
+    .admin-kpi-grid{grid-template-columns:repeat(2,1fr)}
+    .admin-grid{grid-template-columns:1fr}
+}
+@media(max-width:600px){
+    .admin-kpi-grid{grid-template-columns:1fr}
+    .admin-booking-row{grid-template-columns:1fr 1fr}
+}
+
+/* ================= BUS BOOKING ================= */
+.booking-hero{background:linear-gradient(135deg,#0f1b45,#2563eb);color:#fff;padding:30px;border-radius:0 0 28px 28px;margin-bottom:22px;box-shadow:0 20px 45px rgba(37,99,235,.18)}
+.booking-hero h2{font-size:28px;margin:8px 0}.booking-hero p{color:#dbeafe;line-height:1.6;font-size:13px;max-width:850px}
+.booking-kicker{font-size:11px;font-weight:900;letter-spacing:1.5px;color:#93c5fd}
+.booking-card{background:rgba(255,255,255,.94);border:1px solid #dbeafe;border-radius:22px;padding:24px;box-shadow:0 15px 35px rgba(15,23,42,.07);margin-bottom:20px}
+.booking-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.booking-head h3{font-size:20px;color:#0f172a}.booking-head p{font-size:12px;color:#64748b;margin-top:5px}
+.booking-badge{padding:8px 12px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-weight:900;font-size:10px;white-space:nowrap}
+.booking-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:13px;align-items:end}.booking-field label{display:block;font-size:11px;font-weight:900;color:#475569;margin-bottom:7px}.booking-field select,.booking-field input{width:100%;padding:13px 14px;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc;outline:none;font-size:13px}.booking-field select:focus,.booking-field input:focus{border-color:#3b82f6;box-shadow:0 0 0 4px rgba(59,130,246,.1);background:#fff}
+.booking-search-btn,.booking-confirm-btn{border:0;padding:13px 20px;border-radius:12px;background:linear-gradient(135deg,#2563eb,#4f46e5);color:#fff;font-weight:900;cursor:pointer;box-shadow:0 8px 18px rgba(37,99,235,.22);transition:.2s}.booking-search-btn:hover,.booking-confirm-btn:hover{transform:translateY(-2px)}
+.booking-results{display:grid;gap:13px}.booking-empty{text-align:center;padding:28px;color:#64748b;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:15px}.booking-bus-card{display:grid;grid-template-columns:1.5fr 1fr 120px 110px;gap:14px;align-items:center;padding:17px;border:1px solid #e2e8f0;border-radius:16px;background:linear-gradient(135deg,#f8fafc,#fff);transition:.2s}.booking-bus-card:hover{transform:translateY(-2px);border-color:#bfdbfe;box-shadow:0 10px 22px rgba(37,99,235,.09)}.booking-bus-no{display:none}.booking-bus-name{font-weight:900;color:#0f172a}.booking-route-text{font-size:11px;color:#64748b;margin-top:4px}.booking-time{font-weight:800;color:#334155}.booking-fare{font-weight:900;color:#047857}.book-now{border:0;border-radius:11px;padding:10px 12px;background:#0f172a;color:#fff;font-weight:800;cursor:pointer}.book-now:hover{background:#1e3a8a}
+.seat-area{display:none;margin-top:18px}.seat-layout{display:grid;grid-template-columns:1fr 320px;gap:20px}.seat-panel,.passenger-panel{border:1px solid #e2e8f0;border-radius:18px;padding:20px;background:#fff}.seat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:330px;margin:15px auto}.seat{border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:9px;padding:10px 6px;font-size:11px;font-weight:900;cursor:pointer}.seat:hover{background:#dbeafe}.seat.selected{background:#2563eb;color:#fff;border-color:#2563eb}.seat.booked{background:#e2e8f0;color:#94a3b8;border-color:#cbd5e1;cursor:not-allowed;text-decoration:line-through}.seat-legend{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;font-size:10px;color:#64748b;margin-top:12px}.seat-dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:middle}.available-dot{background:#eff6ff;border:1px solid #bfdbfe}.selected-dot{background:#2563eb}.booked-dot{background:#e2e8f0;border:1px solid #cbd5e1}
+.passenger-panel h3,.seat-panel h3{color:#0f172a;margin-bottom:5px}.panel-sub{font-size:11px;color:#64748b}.passenger-form{display:grid;gap:11px;margin-top:15px}.passenger-form label{font-size:10px;font-weight:900;color:#475569}.passenger-form input{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;margin-top:5px;outline:none}.fare-box{margin:14px 0;padding:14px;border-radius:12px;background:#eff6ff;color:#1e3a8a;display:flex;justify-content:space-between;font-weight:900}.booking-confirm{display:none;margin-top:18px;padding:20px;border-radius:16px;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}.booking-confirm h3{margin-bottom:8px}.booking-confirm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.confirm-item{background:#fff;border:1px solid #d1fae5;border-radius:10px;padding:10px}.confirm-item small{display:block;color:#64748b;font-size:9px}.confirm-item b{display:block;margin-top:3px;font-size:12px}
+.my-booking{display:grid;gap:10px}.my-booking-row{display:grid;grid-template-columns:100px 1fr 120px 100px auto;gap:12px;align-items:center;padding:14px;border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc;font-size:11px}.booking-id{font-weight:900;color:#1d4ed8}.cancel-booking{border:1px solid #fecaca;background:#fff1f2;color:#b91c1c;border-radius:9px;padding:8px 10px;font-weight:800;cursor:pointer}.track-booking{border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:9px;padding:8px 10px;font-weight:800;cursor:pointer}
+@media(max-width:900px){.booking-form{grid-template-columns:1fr 1fr}.seat-layout{grid-template-columns:1fr}.booking-bus-card{grid-template-columns:60px 1fr 1fr}.booking-bus-card .booking-fare,.booking-bus-card .book-now{grid-column:span 1}.booking-confirm-grid{grid-template-columns:1fr 1fr}.my-booking-row{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.booking-form{grid-template-columns:1fr}.booking-bus-card{grid-template-columns:1fr}.booking-confirm-grid{grid-template-columns:1fr}.booking-hero h2{font-size:23px}.seat-grid{max-width:280px}}
+
+
+/* ================= DIGITAL BUS TICKET ================= */
+.digital-ticket{
+    display:none;
+    margin-top:18px;
+    border:1px solid #dbeafe;
+    border-radius:20px;
+    overflow:hidden;
+    background:#fff;
+    box-shadow:0 15px 35px rgba(15,23,42,.10);
+}
+.ticket-top{
+    padding:20px 22px;
+    background:linear-gradient(135deg,#0f172a,#1d4ed8);
+    color:#fff;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+}
+.ticket-top h3{margin:0;font-size:20px}
+.ticket-top p{margin-top:5px;font-size:10px;color:#cbd5e1;letter-spacing:1px}
+.ticket-status{padding:7px 10px;border-radius:999px;background:rgba(34,197,94,.15);border:1px solid rgba(134,239,172,.3);color:#bbf7d0;font-size:9px;font-weight:900}
+.ticket-body{padding:20px}
+.ticket-id-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+.ticket-id{font-size:18px;font-weight:950;color:#1d4ed8}
+.ticket-route{
+    display:grid;
+    grid-template-columns:1fr 60px 1fr;
+    align-items:center;
+    text-align:center;
+    padding:17px;
+    background:#f8fafc;
+    border:1px solid #e2e8f0;
+    border-radius:15px;
+}
+.ticket-route small,.ticket-item small{display:block;color:#94a3b8;font-size:9px;font-weight:900;margin-bottom:5px;text-transform:uppercase}
+.ticket-route b{font-size:15px;color:#0f172a}
+.ticket-arrow{font-size:25px;font-weight:900;color:#2563eb}
+.ticket-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+    margin-top:14px;
+}
+.ticket-item{
+    padding:12px;
+    background:#f8fafc;
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+}
+.ticket-item b{font-size:12px;color:#0f172a}
+.ticket-fare{
+    margin-top:14px;
+    padding:13px 15px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    border-radius:13px;
+    background:#eff6ff;
+    border:1px solid #bfdbfe;
+    color:#1e3a8a;
+    font-weight:900;
+}
+.ticket-actions{display:flex;gap:10px;margin-top:15px}
+.ticket-action{
+    flex:1;
+    border:0;
+    border-radius:11px;
+    padding:12px;
+    cursor:pointer;
+    font-weight:900;
+}
+.ticket-print{background:#0f172a;color:#fff}
+.ticket-track{background:#2563eb;color:#fff}
+.ticket-note{
+    padding:12px 20px;
+    text-align:center;
+    border-top:1px dashed #cbd5e1;
+    color:#64748b;
+    font-size:10px;
+}
+@media(max-width:700px){
+    .ticket-top{align-items:flex-start;flex-direction:column}
+    .ticket-grid{grid-template-columns:1fr 1fr}
+    .ticket-route{grid-template-columns:1fr 40px 1fr}
+    .ticket-actions{flex-direction:column}
+}
+@media print{
+    body *{visibility:hidden!important}
+    #digitalTicket,#digitalTicket *{visibility:visible!important}
+    #digitalTicket{
+        display:block!important;
+        position:absolute!important;
+        left:0!important;
+        top:0!important;
+        width:100%!important;
+        margin:0!important;
+        box-shadow:none!important;
+    }
+    .ticket-actions{display:none!important}
+}
+
+
+/* ================= NO USER-FACING BUS NUMBERS ================= */
+.bus-no,.map-bus-number,.marker-bus-no,.admin-bus-no,.booking-bus-no{display:none!important}
+.map-bus-item{grid-template-columns:42px 1fr auto!important}
+.map-bus-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:#eff6ff;font-size:20px}
+
+/* FINAL BUS UI: NAME ONLY */
+.bus-no,.map-bus-number,.marker-bus-no,.admin-bus-no,.booking-bus-no{display:none!important}
+.live-row{grid-template-columns:1.4fr 1fr 92px 80px!important}
+.map-bus-item{grid-template-columns:42px 1fr auto!important}
+.map-bus-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:#eff6ff;font-size:20px}
+</style>
+
+<style>
+
+/* =========================================================
+   MINI REDBUS EXPERIENCE - VISUAL OVERRIDES
+   Keeps existing IDs and JavaScript modules intact.
+   ========================================================= */
+:root{--rb-red:#d84e55;--rb-dark:#27313d;--rb-muted:#6b7280;--rb-line:#e5e7eb;--rb-bg:#f5f7fa}
+body{background:var(--rb-bg)!important;color:#263238}
+.top-nav{background:#fff!important;color:#27313d!important;border-bottom:1px solid #eceff3!important;box-shadow:0 3px 16px rgba(15,23,42,.06)!important;position:sticky;top:0;z-index:1000}
+.top-nav .brand{color:#27313d!important}
+.top-nav .brand-icon{background:var(--rb-red)!important;color:#fff!important;border-radius:12px!important;box-shadow:0 5px 12px #d84e5530}
+.top-nav .brand small{color:#7b8490!important;letter-spacing:1.2px}
+.top-nav .nav-link{color:#46505b!important;border-radius:9px!important}
+.top-nav .nav-link:hover,.top-nav .nav-link.active{background:#fff0f1!important;color:var(--rb-red)!important}
+.top-nav .nav-link.logout{color:#b4232c!important}
+.main{max-width:1380px!important;margin:0 auto!important;padding:24px clamp(12px,3vw,36px)!important}
+#bookingSection{max-width:1120px;margin:0 auto}
+.booking-hero{position:relative;overflow:hidden;background:linear-gradient(118deg,#b92f3a 0%,#d84e55 54%,#ed777c 100%)!important;color:#fff!important;border-radius:22px!important;padding:34px clamp(20px,4vw,46px)!important;margin:8px 0 24px!important;box-shadow:0 16px 34px rgba(216,78,85,.2)!important}
+.booking-hero:after{content:'🚌';position:absolute;right:5%;bottom:-35px;font-size:140px;opacity:.14;transform:rotate(-7deg);pointer-events:none}
+.booking-hero .booking-kicker{color:#ffe3e5!important;font-weight:800;letter-spacing:2px;font-size:11px}
+.booking-hero h2{color:#fff!important;font-size:clamp(25px,4vw,38px)!important;margin:10px 0!important;line-height:1.18}
+.booking-hero p{color:#fff!important;opacity:.92!important;max-width:680px;line-height:1.6;font-size:14px!important}
+.booking-card{background:#fff!important;border:1px solid #e8ebef!important;border-radius:18px!important;box-shadow:0 6px 24px rgba(28,39,54,.055)!important;margin:0 0 20px!important;padding:clamp(16px,2.5vw,26px)!important}
+.booking-head{border-bottom:1px solid #f0f1f3;padding-bottom:15px;margin-bottom:18px;gap:12px}
+.booking-head h3{font-size:19px!important;color:#27313d!important}
+.booking-head p{color:#737d89!important;font-size:12px!important;line-height:1.5}
+.booking-badge{background:#fff0f1!important;color:var(--rb-red)!important;border:1px solid #ffd6d9!important;border-radius:999px!important;padding:7px 11px!important;font-weight:800!important;white-space:nowrap}
+.booking-form{display:grid!important;grid-template-columns:1fr 1fr 1fr auto!important;gap:12px!important;align-items:end!important}
+.booking-field{background:#fff!important;border:1px solid #dfe3e8!important;border-radius:12px!important;padding:10px 13px!important;min-width:0}
+.booking-field:focus-within{border-color:var(--rb-red)!important;box-shadow:0 0 0 3px #d84e5517}
+.booking-field label{display:block!important;color:#737d89!important;font-size:10px!important;font-weight:900!important;letter-spacing:1px!important;margin-bottom:5px!important}
+.booking-field select,.booking-field input{width:100%!important;min-width:0!important;border:0!important;outline:0!important;background:transparent!important;color:#27313d!important;font-size:14px!important;font-weight:700!important;padding:4px 0!important}
+.booking-search-btn,.booking-confirm-btn{background:var(--rb-red)!important;color:#fff!important;border:0!important;border-radius:12px!important;min-height:48px!important;padding:13px 22px!important;font-size:14px!important;font-weight:900!important;box-shadow:0 7px 16px #d84e5527!important;cursor:pointer}
+.booking-search-btn:hover,.booking-confirm-btn:hover{background:#bb3540!important;transform:translateY(-1px)}
+.booking-results{display:grid;gap:12px}
+.booking-bus-card{grid-template-columns:minmax(180px,1.5fr) minmax(120px,1fr) 90px 112px!important;gap:16px!important;background:#fff!important;border:1px solid #e6e8eb!important;border-radius:15px!important;padding:19px!important;box-shadow:0 2px 8px rgba(15,23,42,.025)!important}
+.booking-bus-card:hover{border-color:#f2a6aa!important;box-shadow:0 9px 24px #d84e5510!important;transform:translateY(-2px)}
+.booking-bus-name{font-size:15px!important;color:#27313d!important;line-height:1.4}
+.booking-route-text{font-size:11px!important;color:#737d89!important;line-height:1.5}
+.booking-time{font-size:14px!important;color:#27313d!important}
+.booking-fare{font-size:18px!important;color:#27313d!important}
+.book-now{background:var(--rb-red)!important;border-radius:9px!important;padding:12px 14px!important;white-space:nowrap}
+.book-now:hover{background:#b92f3a!important}
+.seat-panel,.passenger-panel{border:1px solid #e8ebef!important;border-radius:16px!important;box-shadow:0 3px 12px rgba(15,23,42,.035)}
+.seat.selected{background:var(--rb-red)!important;border-color:var(--rb-red)!important}
+.seat:not(.booked):hover{border-color:var(--rb-red)!important;color:var(--rb-red)!important}
+.fare-box{background:#fff0f1!important;color:#a52b34!important;border:1px solid #ffd6d9!important}
+.booking-confirm{border-radius:16px!important}
+.digital-ticket{border-radius:18px!important;overflow:hidden}
+.booking-empty{padding:26px!important;border:1px dashed #d8dce2!important;border-radius:13px!important;background:#fafbfc!important;color:#6b7280!important;text-align:center!important;line-height:1.7}
+#bookingSection .booking-card:first-of-type{margin-top:0}
+@media(max-width:850px){.booking-form{grid-template-columns:1fr 1fr!important}.booking-search-btn{grid-column:1/-1;width:100%}.booking-bus-card{grid-template-columns:1fr 1fr!important}.booking-bus-card .book-now{width:100%}.booking-fare{align-self:center}}
+@media(max-width:560px){.main{padding:14px 10px!important}.booking-hero{padding:25px 20px!important;border-radius:16px!important}.booking-hero:after{font-size:90px;right:0}.booking-form{grid-template-columns:1fr!important}.booking-bus-card{grid-template-columns:1fr!important;gap:10px!important}.booking-bus-card .book-now{width:100%}.booking-head{align-items:flex-start!important;flex-wrap:wrap}.seat-layout{grid-template-columns:1fr!important}.booking-confirm-grid{grid-template-columns:1fr 1fr!important}}
+</style>
+</head>
+
+<body>
+
+
+<!-- ================= LOGIN PAGE ================= -->
+
+<div id="loginPage">
+
+    <div class="login-container">
+
+        <!-- 3D SMART BUS VISUAL -->
+        <div class="login-visual">
+
+            <div class="ai-orb"></div>
+
+            <span class="ai-points ai-p1"></span>
+            <span class="ai-points ai-p2"></span>
+            <span class="ai-points ai-p3"></span>
+            <span class="ai-points ai-p4"></span>
+
+            <h1>Smart Bus</h1>
+            <p>AI-powered bus arrival prediction for smarter and more reliable travel.</p>
+
+            <div class="bus-3d">
+                <div class="bus-wheel left"></div>
+                <div class="bus-wheel right"></div>
+            </div>
+
+            <p>🤖 <b>AI • LIVE • PREDICTION</b></p>
+
+        </div>
+
+        <!-- GLASS LOGIN FORM -->
+        <div class="login-form">
+
+            <div class="login-logo">🚌</div>
+
+            <h2>Welcome Back</h2>
+            <p class="login-subtitle">AI Bus Arrival Prediction System</p>
+
+            <div class="input-group">
+                <span class="input-icon">👤</span>
+                <input
+                    type="text"
+                    id="username"
+                    placeholder="Username"
+                    autocomplete="username">
+            </div>
+
+            <div class="input-group">
+                <span class="input-icon">🔑</span>
+                <input
+                    type="password"
+                    id="password"
+                    placeholder="Password"
+                    autocomplete="current-password">
+                <button
+                    type="button"
+                    class="password-toggle"
+                    onclick="togglePassword()"
+                    aria-label="Show or hide password">
+                    👁️
+                </button>
+            </div>
+
+            <button
+                type="button"
+                class="login-btn"
+                onclick="login()">
+                🚀 LOGIN
+            </button>
+
+            <button
+                type="button"
+                class="register-btn"
+                onclick="registerUser()">
+                📝 Register
+            </button>
+
+            <button
+                type="button"
+                class="exit-btn"
+                onclick="exitApp()">
+                ✕ Exit
+            </button>
+
+            <p id="message"></p>
+
+            <div class="login-tagline">SMART • FAST • RELIABLE</div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ================= DASHBOARD ================= -->
+
+<div id="dashboard">
+
+    <!-- ================= PROFESSIONAL TOP NAV ================= -->
+    <nav class="top-nav">
+        <div class="brand">
+            <div class="brand-icon">🚌</div>
+            <div>AI BUS <small>MINI REDBUS • SMART TRAVEL</small></div>
+        </div>
+
+        <div class="nav-links">
+            <button class="nav-link active" onclick="showSection('dashboardSection',this)">🏠 Dashboard</button>
+            <button class="nav-link" onclick="showSection('mapSection',this)">🗺️ Live Map</button>
+            <button class="nav-link" onclick="showSection('bookingSection',this)">🎟️ Bus Booking</button>
+            <button class="nav-link" onclick="showSection('driverSection',this)">📡 Driver</button>
+            <button class="nav-link" onclick="showSection('predictionSection',this)">⏱️ Prediction</button>
+            <button class="nav-link" onclick="showSection('chatbotSection',this)">🤖 AI Assistant</button>
+            <button class="nav-link" onclick="showSection('reportsSection',this)">📊 Reports</button>
+            <button class="nav-link admin-nav" id="adminNav" style="display:none" onclick="showSection('adminSection',this); loadAdminDashboard()">🛡️ Admin</button>
+            <button class="nav-link logout" onclick="logout()">🚪 Logout</button>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <h1>AI Bus Arrival Prediction Dashboard</h1>
+                <p>Real-time bus monitoring, AI ETA prediction and intelligent travel assistance.</p>
+            </div>
+            <div class="status-pill">● SYSTEM ONLINE</div>
+        </div>
+
+        <!-- ================= DASHBOARD ================= -->
+        <div id="dashboardSection" class="section active-section">
+            <div class="premium-hero">
+                <div class="hero-content">
+                    <div>
+                        <div class="hero-kicker">AI BUS CONTROL CENTER</div>
+                        <h2>Smart Mobility Dashboard</h2>
+                        <p>Monitor fleet activity, AI arrival predictions and intelligent travel assistance from one professional control center.</p>
+                    </div>
+                    <div class="hero-live"><i></i> SYSTEM ONLINE</div>
+                </div>
+            </div>
+
+            <div class="kpi-grid">
+                <div class="kpi-card"><div class="kpi-top"><span class="kpi-label">TOTAL FLEET</span><span class="kpi-icon">🚌</span></div><div class="kpi-value" id="totalBusCount">90</div><div class="kpi-meta">Tracked buses across Tamil Nadu</div></div>
+                <div class="kpi-card"><div class="kpi-top"><span class="kpi-label">ACTIVE BUSES</span><span class="kpi-icon">🟢</span></div><div class="kpi-value" id="runningCount">22</div><div class="kpi-meta"><span class="kpi-badge">LIVE</span> Currently running</div></div>
+                <div class="kpi-card"><div class="kpi-top"><span class="kpi-label">AI PREDICTIONS</span><span class="kpi-icon">🤖</span></div><div class="kpi-value" id="predictionCardCount">285</div><div class="kpi-meta">Arrival estimates generated</div></div>
+                <div class="kpi-card"><div class="kpi-top"><span class="kpi-label">ACTIVE USERS</span><span class="kpi-icon">👥</span></div><div class="kpi-value" id="activeUsersCount">18</div><div class="kpi-meta">Registered system users</div></div>
+            </div>
+
+            <div class="section-grid">
+                <div class="premium-panel">
+                    <div class="premium-panel-head"><div><h3>📡 Fleet Activity</h3><p>Latest operational snapshot from the tracked fleet</p></div><span class="panel-tag">REAL-TIME</span></div>
+                    <div class="activity-list" id="dashboardActivityList"></div>
+                </div>
+                <div class="premium-panel">
+                    <div class="premium-panel-head"><div><h3>🛡️ System Health</h3><p>Service availability overview</p></div><span class="panel-tag">HEALTHY</span></div>
+                    <div class="health-list">
+                        <div class="health-row"><span class="health-name">Map Tracking</span><span class="health-value">98%</span><div class="health-track"><div class="health-fill" style="width:98%"></div></div></div>
+                        <div class="health-row"><span class="health-name">AI Prediction</span><span class="health-value">96%</span><div class="health-track"><div class="health-fill" style="width:96%"></div></div></div>
+                        <div class="health-row"><span class="health-name">Assistant</span><span class="health-value">99%</span><div class="health-track"><div class="health-fill" style="width:99%"></div></div></div>
+                        <div class="health-row"><span class="health-name">Data Sync</span><span class="health-value">94%</span><div class="health-track"><div class="health-fill orange" style="width:94%"></div></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="panel">
+                    <div class="panel-head"><div><h2>🚌 Live Bus Status</h2><p>Search and monitor all tracked buses with AI ETA</p></div><button class="quick-btn" onclick="showSection('mapSection',document.querySelectorAll('.nav-link')[1])">View Map →</button></div>
+                    <div class="live-toolbar"><div class="live-search"><span>🔍</span><input type="text" id="busStatusSearch" placeholder="Search Bus Name, Route or City..." oninput="filterDashboardBuses(this.value)"></div><div class="live-count" id="liveBusCount">90 Buses</div></div>
+                    <div class="live-list" id="dashboardBusStatus"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-head"><div><h2>⚡ Quick Actions</h2><p>Access smart features quickly</p></div></div>
+                    <div class="quick-actions">
+                        <button class="action-btn" onclick="showSection('predictionSection',document.querySelectorAll('.nav-link')[3])">⏱️ Predict Bus Arrival</button>
+                        <button class="action-btn" onclick="showSection('mapSection',document.querySelectorAll('.nav-link')[1])">🗺️ Track Buses Live</button>
+                        <button class="action-btn" onclick="showSection('bookingSection',document.querySelectorAll('.nav-link')[2])">🎟️ Book a Bus</button>
+                        <button class="action-btn" onclick="showSection('chatbotSection',document.querySelectorAll('.nav-link')[4])">🤖 Ask AI Assistant</button>
+                        <button class="action-btn" onclick="showSection('reportsSection',document.querySelectorAll('.nav-link')[5])">📈 View Reports</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="premium-panel" style="margin-top:20px">
+                <div class="premium-panel-head"><div><h3>⏱️ Quick AI Prediction</h3><p>Get an arrival estimate without leaving the dashboard.</p></div><span class="panel-tag">ML POWERED</span></div>
+                <div class="predict-input-row"><input type="text" id="bus" placeholder="Enter Bus Name (e.g. Chennai Express)"><button class="predict-btn" onclick="predictBus()">🤖 Predict ETA</button></div>
+                <div id="result" style="margin-top:14px;color:#2563eb;line-height:1.8"></div>
+            </div>
+
+            <div class="bus-images-section"><h2>🚌 Our Travel Buses</h2><div class="bus-image-grid" id="busImageGrid"></div></div>
+        </div>
+
+        <!-- ================= LIVE MAP ================= -->
+        <div id="mapSection" class="section">
+            <div class="map-header">
+                <div class="map-title-row">
+                    <div>
+                        <h2>🗺️ Tamil Nadu Live Bus Map</h2>
+                        <p>Track all 90 buses with live status, ETA, route lines and simulated location refresh.</p>
+                    </div>
+                    <div class="map-live-pill"><span></span> LIVE SIMULATION</div>
+                </div>
+
+                <div class="map-tools">
+                    <div class="map-search-wrap">
+                        <span>🔍</span>
+                        <input id="mapBusSearch" type="text" placeholder="Search Bus Name, Chennai, Coimbatore..." oninput="filterMapBuses(this.value)">
+                    </div>
+                    <button class="map-reset-btn" onclick="resetMapView()">🎯 Reset Map</button>
+                    <div class="map-counts">
+                        <span class="map-count running-count">🟢 Running <b id="mapRunningCount">0</b></span>
+                        <span class="map-count stopped-count">🔴 Stopped <b id="mapStoppedCount">0</b></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-layout">
+                <div class="map-card">
+                    <div id="map"></div>
+                    <div class="map-legend">
+                        <span><i class="legend-dot running-dot"></i> Running</span>
+                        <span><i class="legend-dot stopped-dot"></i> Stopped</span>
+                        <span>🛣️ Route</span>
+                        <span>🔄 Auto refresh: <b id="mapRefreshText">10s</b></span>
+                    </div>
+                </div>
+
+                <div class="map-detail-card" id="mapDetailCard">
+                    <div class="detail-empty">
+                        <div class="detail-empty-icon">🚌</div>
+                        <h3>Select a bus</h3>
+                        <p>Click any bus marker on the map to see its current details and ETA.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bus-panel">
+                <div class="bus-panel-head">
+                    <div><h2>🚌 Live Bus Status</h2><p>Click a bus to focus it on the map.</p></div>
+                    <span id="mapBusListCount" class="map-list-count">90 Buses</span>
+                </div>
+                <div id="busStatusList" class="map-bus-list"></div>
+            </div>
+        </div>
+
+
+
+        <!-- ================= BUS BOOKING ================= -->
+        <div id="bookingSection" class="section">
+            <div class="booking-hero">
+                <div class="booking-kicker">SMART TRAVEL BOOKING</div>
+                <h2>🎟️ Book Your Bus Journey</h2>
+                <p>Find your next journey, compare 90 demo bus services, choose your seat and get a digital ticket. Search and booking data are simulated for this college project.</p>
+            </div>
+
+            <div class="booking-card">
+                <div class="booking-head">
+                    <div><h3>🔎 Search Buses</h3><p>Choose your journey details to see available buses.</p></div>
+                    <span class="booking-badge">DEMO BOOKING</span>
+                </div>
+                <div class="booking-form">
+                    <div class="booking-field"><label>FROM</label><select id="bookingFrom"></select></div>
+                    <div class="booking-field"><label>TO</label><select id="bookingTo"></select></div>
+                    <div class="booking-field"><label>TRAVEL DATE</label><input type="date" id="bookingDate"></div>
+                    <button class="booking-search-btn" onclick="searchBookingBuses()">🔎 Search Bus</button>
+                </div>
+                <div class="booking-form" style="margin-top:12px;grid-template-columns:repeat(4,1fr)!important">
+                    <div class="booking-field"><label>BUS TYPE</label><select id="filterBusType"><option value="">Any type</option><option>Volvo</option><option>Scania</option><option>AC</option></select></div>
+                    <div class="booking-field"><label>COMFORT</label><select id="filterAc"><option value="">AC / Non-AC</option><option value="ac">AC</option><option value="nonac">Non-AC</option></select></div>
+                    <div class="booking-field"><label>SEAT STYLE</label><select id="filterLayout"><option value="">Sleeper / Seater</option><option>Sleeper</option><option>Seater</option></select></div>
+                    <div class="booking-field"><label>BOARDING / DROP</label><input id="filterStop" placeholder="Search a stop"></div>
+                </div>
+            </div>
+
+            <div class="booking-card">
+                <div class="booking-head"><div><h3>🚌 Available Buses</h3><p>Select a bus and continue to seat selection.</p></div><span id="bookingResultCount" class="booking-badge">0 Buses</span></div>
+                <div id="bookingResults" class="booking-results"><div class="booking-empty">🚌 Select From, To and Travel Date, then click <b>Search Bus</b>.</div></div>
+            </div>
+
+            <div id="seatArea" class="seat-area">
+                <div class="booking-card">
+                    <div class="booking-head"><div><h3>💺 Select Your Seat</h3><p id="selectedBusBookingText">Choose one available seat.</p></div><span id="selectedSeatBadge" class="booking-badge">No Seat Selected</span></div>
+                    <div class="seat-layout">
+                        <div class="seat-panel">
+                            <h3>🚌 Seat Layout</h3>
+                            <div class="panel-sub">Front of the bus ↑</div>
+                            <div id="seatGrid" class="seat-grid"></div>
+                            <div class="seat-legend">
+                                <span><i class="seat-dot available-dot"></i>Available</span>
+                                <span><i class="seat-dot selected-dot"></i>Selected</span>
+                                <span><i class="seat-dot booked-dot"></i>Booked</span>
+                            </div>
+                        </div>
+                        <div class="passenger-panel">
+                            <h3>👤 Passenger Details</h3>
+                            <div class="panel-sub">Demo booking details</div>
+                            <div class="passenger-form">
+                                <label>PASSENGER NAME<input id="passengerName" type="text" placeholder="Enter passenger name"></label>
+                                <label>AGE<input id="passengerAge" type="number" min="1" max="100" placeholder="Enter age"></label>
+                                <label>CONTACT NUMBER<input id="passengerContact" type="tel" maxlength="10" placeholder="10-digit mobile number"></label>
+                                <label style="grid-column:1/-1;display:flex;align-items:center;gap:8px"><input id="ticketAlertsOptIn" type="checkbox" style="width:auto">Send booking ticket and ETA by WhatsApp + SMS (Twilio required)</label>
+                            </div>
+                            <div class="fare-box"><span>Total Fare</span><span id="bookingFare">₹0</span></div>
+                            <button class="booking-confirm-btn" style="width:100%" onclick="confirmBusBooking()">✅ Confirm Booking</button>
+                        </div>
+                    </div>
+                    <div id="bookingConfirmation" class="booking-confirm"></div>
+
+                    <!-- ================= DIGITAL TICKET ================= -->
+                    <div id="digitalTicket" class="digital-ticket">
+                        <div class="ticket-top">
+                            <div>
+                                <h3>🎫 Digital Bus Ticket</h3>
+                                <p>AI BUS ARRIVAL • SMART TRAVEL</p>
+                            </div>
+                            <span class="ticket-status">✓ CONFIRMED</span>
+                        </div>
+
+                        <div class="ticket-body">
+                            <div class="ticket-id-row">
+                                <div>
+                                    <small style="color:#64748b;font-size:9px;font-weight:900;">BOOKING ID</small>
+                                    <div id="ticketBookingId" class="ticket-id">---</div>
+                                </div>
+                                <div style="font-size:24px;">🚌</div>
+                            </div>
+
+                            <div class="ticket-route">
+                                <div>
+                                    <small>FROM</small>
+                                    <b id="ticketFrom">---</b>
+                                </div>
+                                <div class="ticket-arrow">→</div>
+                                <div>
+                                    <small>TO</small>
+                                    <b id="ticketTo">---</b>
+                                </div>
+                            </div>
+
+                            <div class="ticket-grid">
+                                <div class="ticket-item"><small>BUS OPERATOR</small><b id="ticketBus">---</b></div>
+                                <div class="ticket-item"><small>TRAVEL DATE</small><b id="ticketDate">---</b></div>
+                                <div class="ticket-item"><small>TRAVEL TIME</small><b id="ticketTime">---</b></div>
+                                <div class="ticket-item"><small>SEAT</small><b id="ticketSeat">---</b></div>
+                                <div class="ticket-item"><small>PASSENGER</small><b id="ticketPassenger">---</b></div>
+                                <div class="ticket-item"><small>AGE</small><b id="ticketAge">---</b></div>
+                                <div class="ticket-item"><small>CONTACT</small><b id="ticketContact">---</b></div>
+                                <div class="ticket-item"><small>STATUS</small><b>CONFIRMED</b></div>
+                            </div>
+
+                            <div class="ticket-fare">
+                                <span>TOTAL FARE</span>
+                                <span id="ticketFare" style="font-size:19px;">₹0</span>
+                            </div>
+
+                            <div style="display:flex;align-items:center;gap:14px;margin:14px 0;padding:12px;background:#f8fafc;border-radius:12px">
+                                <div id="ticketQr" aria-label="Ticket QR code"></div><div><b>Scan to verify ticket</b><p id="ticketTokenLabel" style="font-size:10px;color:#64748b;margin-top:4px">Secure one-time ticket reference</p></div>
+                            </div>
+
+                            <div class="ticket-actions">
+                                <button class="ticket-action ticket-print" type="button" onclick="printDigitalTicket()">📄 Download / Print PDF</button>
+                                <button class="ticket-action ticket-track" type="button" onclick="trackDigitalTicketBus()">📍 Track My Bus</button>
+                                <button class="ticket-action ticket-track" type="button" onclick="sendTicketAlert('whatsapp')">🟢 WhatsApp ticket</button>
+                                <button class="ticket-action ticket-track" type="button" onclick="sendTicketAlert('sms')">💬 SMS ticket</button>
+                            </div>
+                        </div>
+
+                        <div class="ticket-note">
+                            Please keep this digital ticket for your journey. • Demo project booking
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="booking-card">
+                <div class="booking-head"><div><h3>📋 My Bookings</h3><p>Confirmed bookings saved in this browser for the project demo.</p></div><button class="cancel-booking" onclick="clearAllBookings()">🗑️ Clear</button></div>
+                <div id="myBookings" class="my-booking"><div class="booking-empty">📋 No bookings yet. Your confirmed bookings will appear here.</div></div>
+            </div>
+        </div>
+
+        <!-- ================= PREDICTION ================= -->
+        <div id="predictionSection" class="section">
+            <div class="prediction-premium">
+                <div class="prediction-form-card">
+                    <div class="hero-kicker" style="color:#2563eb">INTELLIGENT ETA ENGINE</div>
+                    <h2>🚌 AI Bus Arrival Prediction</h2>
+                    <p>Enter a bus name and the trained prediction model will estimate the arrival time using distance, traffic, weather and previous travel-time data.</p>
+                    <div class="predict-input-row"><input type="text" id="busPrediction" placeholder="Enter Bus Name (e.g. Chennai Express)"><button class="predict-btn" onclick="predictBusTime()">🤖 Predict ETA</button></div>
+                    <div class="prediction-features"><div class="feature-chip">📏 DISTANCE</div><div class="feature-chip">🚦 TRAFFIC</div><div class="feature-chip">🌤️ WEATHER</div></div>
+                </div>
+                <div class="prediction-result-card" id="predictionResultCard">
+                    <div class="result-label">AI PREDICTION RESULT</div>
+                    <div class="result-main" id="predictionResult">Ready</div>
+                    <div class="result-note">Your prediction result will appear here after selecting a valid bus name.</div>
+                </div>
+            </div>
+            <div class="premium-panel" style="margin-top:18px"><div class="premium-panel-head"><div><h3>💡 How it works</h3><p>Simple three-step prediction workflow</p></div><span class="panel-tag">SMART ETA</span></div><div class="prediction-features" style="grid-template-columns:repeat(3,1fr)"><div class="feature-chip">01 • SELECT BUS</div><div class="feature-chip">02 • ANALYZE DATA</div><div class="feature-chip">03 • SHOW ETA</div></div></div>
+        </div>
+
+        <!-- ================= AI CHATBOT ================= -->
+        <div id="chatbotSection" class="section">
+            <div class="ai-layout">
+                <div class="ai-side">
+                    <div class="ai-avatar">🤖</div>
+                    <h3>AI Bus Assistant</h3>
+                    <p>Your intelligent travel companion for bus location, ETA, status and route information.</p>
+                    <div class="ai-status"><i></i> ONLINE & READY</div>
+                    <div class="ai-capabilities">
+                        <div class="ai-capability">📍 Live bus location</div>
+                        <div class="ai-capability">⏱️ AI arrival estimate</div>
+                        <div class="ai-capability">📊 Running / stopped status</div>
+                        <div class="ai-capability">🗺️ Route information</div>
+                        <div class="ai-capability">⚠️ Delay assistance</div>
+                    </div>
+                </div>
+                <div class="chatbot">
+                    <div class="chat-header"><div class="bot-icon">🤖</div><div><h2>AI Bus Assistant</h2><p>● Online • Ready to help with buses, routes and ETA</p></div></div>
+                    <div class="quick-questions"><button class="quick-btn" onclick="quickQuestion('Where is Chennai Express?')">🚌 Bus Location</button><button class="quick-btn" onclick="quickQuestion('When will Chennai Express arrive?')">⏱️ Bus Arrival</button><button class="quick-btn" onclick="quickQuestion('Tell me all buses')">🗺️ Bus List</button></div>
+                    <div class="ai-toolbar"><button class="clear-chat-btn" onclick="clearChat()">🗑️ Clear Chat</button><button class="quick-btn" onclick="startTamilVoice()">🎙️ தமிழ் பேச</button><button class="quick-btn" id="voiceReplyToggle" onclick="toggleVoiceReply()">🔊 Voice reply: Off</button></div>
+                    <div class="chat-messages" id="chatMessages"><div class="message bot-message">👋 Hello! I'm your AI Bus Assistant.<br><br>Ask me about any bus by its <b>name or city</b>.<br><br>Example: <b>Where is Chennai Express?</b></div></div>
+                    <div class="chat-input-area"><input type="text" id="chatInput" class="chat-input" placeholder="Ask about a bus name or city..." autocomplete="off"><button class="send-btn" onclick="sendMessage()">➤</button></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= REPORTS ================= -->
+        
+<!-- ================= ADMIN DASHBOARD ================= -->
+<div id="adminSection" class="section">
+    <div class="admin-hero">
+        <div style="font-size:10px;letter-spacing:2px;color:#93c5fd;font-weight:900">ADMIN CONTROL CENTER</div>
+        <h2>🛡️ Fleet & Booking Administration</h2>
+        <p>Monitor the project fleet, booking activity and operational status from one administrator view.</p>
+    </div>
+
+    <div class="admin-kpi-grid">
+        <div class="admin-kpi">
+            <div class="admin-kpi-label">TOTAL BUSES</div>
+            <div class="admin-kpi-value" id="adminBusCount">90</div>
+        </div>
+        <div class="admin-kpi">
+            <div class="admin-kpi-label">RUNNING BUSES</div>
+            <div class="admin-kpi-value" id="adminRunningCount">22</div>
+        </div>
+        <div class="admin-kpi">
+            <div class="admin-kpi-label">TOTAL BOOKINGS</div>
+            <div class="admin-kpi-value" id="adminBookingCount">0</div>
+        </div>
+        <div class="admin-kpi"><div class="admin-kpi-label">CONFIRMED REVENUE</div><div class="admin-kpi-value" id="adminRevenue">₹0</div></div>
+        <div class="admin-kpi">
+            <div class="admin-kpi-label">REGISTERED USERS</div>
+            <div class="admin-kpi-value" id="adminUserCount">18</div>
+        </div>
+    </div>
+
+    <div class="admin-grid">
+        <div class="admin-panel">
+            <div class="admin-panel-head">
+                <div>
+                    <h3>🎫 Recent Bookings</h3>
+                    <p>Bookings loaded from the SQLite booking API.</p>
+                </div>
+                <button class="admin-refresh" onclick="loadAdminDashboard()">↻ Refresh</button>
+            </div>
+            <div id="adminBookingsList" class="admin-bookings">
+                <div class="booking-empty">Loading booking data...</div>
+            </div>
+        </div>
+
+        <div class="admin-panel">
+            <div class="admin-panel-head">
+                <div>
+                    <h3>🚌 Fleet Status</h3>
+                    <p>Current simulated bus status.</p>
+                </div>
+            </div>
+            <div id="adminBusStatusList" class="admin-bus-status-list"></div>
+            <div class="admin-note">
+                ℹ️ Driver GPS updates are accepted while the driver page is open and location permission is enabled.
+            </div>
+        </div>
+    </div>
+<div class="admin-grid" style="margin-top:18px">
+    <div class="admin-panel"><div class="admin-panel-head"><div><h3>🚌 Add Fleet Bus</h3><p>Save vehicle type, AC, seat layout and capacity.</p></div></div>
+        <div class="booking-form" style="grid-template-columns:repeat(2,1fr)!important">
+            <div class="booking-field"><label>BUS NUMBER</label><input id="fleetNumber" placeholder="e.g. MRA001"></div>
+            <div class="booking-field"><label>OPERATOR / BUS NAME</label><input id="fleetName" placeholder="Mini RedBus Express"></div>
+            <div class="booking-field"><label>TYPE</label><select id="fleetType"><option>Volvo</option><option>Scania</option><option>Other</option></select></div>
+            <div class="booking-field"><label>LAYOUT</label><select id="fleetLayout"><option>Sleeper</option><option>Seater</option></select></div>
+            <div class="booking-field"><label>AC</label><select id="fleetAc"><option value="true">AC</option><option value="false">Non-AC</option></select></div>
+            <div class="booking-field"><label>SEAT CAPACITY</label><input id="fleetCapacity" type="number" value="36" min="1" max="100"></div>
+        </div><button class="booking-search-btn" onclick="addFleetBus()" style="margin-top:10px">Add bus</button>
+    </div>
+    <div class="admin-panel"><div class="admin-panel-head"><div><h3>🛣️ Route Setup</h3><p>Set stops, departure and base fare for a fleet bus.</p></div></div>
+        <div class="booking-form" style="grid-template-columns:1fr 1fr!important">
+            <div class="booking-field"><label>BUS NUMBER</label><input id="routeBus" placeholder="MRA001"></div><div class="booking-field"><label>BOARDING TIME</label><input id="routeTime" type="time"></div>
+            <div class="booking-field"><label>FROM</label><input id="routeFrom" placeholder="Chennai"></div><div class="booking-field"><label>TO</label><input id="routeTo" placeholder="Madurai"></div>
+            <div class="booking-field"><label>STOPS (comma separated)</label><input id="routeStops" placeholder="Tambaram, Trichy"></div><div class="booking-field"><label>BASE FARE ₹</label><input id="routeFare" type="number" min="0" value="500"></div>
+        </div><button class="booking-search-btn" onclick="saveRouteSetup()" style="margin-top:10px">Save route</button>
+        <div class="booking-form" style="grid-template-columns:1fr 1fr auto!important;margin-top:14px">
+            <div class="booking-field"><label>NEW OPERATOR</label><input id="operatorName" placeholder="Travel company"></div>
+            <div class="booking-field"><label>CONTACT EMAIL</label><input id="operatorEmail" type="email" placeholder="ops@example.com"></div>
+            <button class="booking-search-btn" onclick="registerOperator()">Register</button>
+        </div><div id="operatorList" style="margin-top:14px"></div>
+    </div>
+</div>
+</div>
+
+<div id="driverSection" class="section">
+    <div class="booking-hero"><div class="booking-kicker">DRIVER TRIP CONTROL</div><h2>📡 Driver GPS & Trip</h2><p>Start a trip and share this device’s GPS position with the demo backend every 10 seconds while this page stays open.</p></div>
+    <div class="booking-card"><div class="booking-form" style="grid-template-columns:1fr auto auto!important">
+        <div class="booking-field"><label>BUS NUMBER</label><input id="driverBusNumber" placeholder="e.g. B016"></div>
+        <button class="booking-search-btn" id="tripStartBtn" onclick="startDriverTrip()">▶ Start Trip</button>
+        <button class="cancel-booking" onclick="endDriverTrip()">■ End Trip</button>
+    </div><p id="driverStatus" style="margin-top:12px;color:#64748b">Trip is idle. GPS permission is requested when you start.</p>
+    <hr style="margin:18px 0;border:0;border-top:1px solid #e2e8f0"><h3>🎫 Conductor ticket scanner</h3><button class="booking-search-btn" onclick="startTicketScanner()">Open camera scanner</button><div class="booking-form" style="grid-template-columns:1fr auto!important;margin-top:10px"><div class="booking-field"><label>MANUAL TOKEN CHECK</label><input id="ticketTokenInput" placeholder="Paste scanned QR URL or secure token"></div><button class="booking-search-btn" onclick="verifyManualTicket()">Verify</button></div><div id="ticketScanResult" style="margin-top:12px"></div><video id="ticketScannerVideo" style="display:none;width:min(100%,420px);margin-top:12px;border-radius:12px" playsinline></video></div>
+</div>
+
+<div id="reportsSection" class="section">
+            <div class="report-hero"><div><h2>📊 Fleet Reports & Analytics</h2><p>Professional operational overview based on the current project data and prediction history.</p></div><button class="report-refresh" onclick="updateReportChart();displayPredictionHistory();">↻ Refresh Analytics</button></div>
+            <div class="kpi-grid">
+                <div class="kpi-card"><div class="kpi-top"><span class="kpi-label">FLEET SIZE</span><span class="kpi-icon">🚌</span></div><div class="kpi-value">90</div><div class="kpi-meta">Total tracked buses</div></div>
+                <div class="kpi-card"><div class="kpi-top"><span class="kpi-label">RUNNING</span><span class="kpi-icon">🟢</span></div><div class="kpi-value" id="reportRunning">22</div><div class="kpi-meta">Active on network</div></div>
+                <div class="kpi-card"><div class="kpi-top"><span class="kpi-label">STOPPED</span><span class="kpi-icon">🔴</span></div><div class="kpi-value" id="reportStopped">3</div><div class="kpi-meta">Currently inactive</div></div>
+                <div class="kpi-card"><div class="kpi-top"><span class="kpi-label">PREDICTIONS</span><span class="kpi-icon">🤖</span></div><div class="kpi-value" id="predictionCount">0</div><div class="kpi-meta">Saved prediction history</div></div>
+            </div>
+            <div class="analytics-grid">
+                <div class="analytics-card"><h3>📈 Fleet Utilization</h3><p>Running buses compared with total fleet.</p><div class="metric-row"><div class="metric-head"><span>Running</span><span id="fleetUtilValue">88%</span></div><div class="metric-track"><div class="metric-fill" id="fleetUtilBar" style="width:88%"></div></div></div><div class="metric-row"><div class="metric-head"><span>Stopped</span><span id="fleetStopValue">12%</span></div><div class="metric-track"><div class="metric-fill" id="fleetStopBar" style="width:12%"></div></div></div></div>
+                <div class="analytics-card"><h3>🤖 AI Prediction Activity</h3><p>Current history and project prediction baseline.</p><div class="metric-row"><div class="metric-head"><span>Saved history</span><span id="historyMetricValue">0</span></div><div class="metric-track"><div class="metric-fill" id="historyMetricBar" style="width:8%"></div></div></div><div class="metric-row"><div class="metric-head"><span>System baseline</span><span>285</span></div><div class="metric-track"><div class="metric-fill" style="width:92%"></div></div></div></div>
+            </div>
+            <div class="analytics-card"><div class="premium-panel-head"><div><h3>📋 Prediction History</h3><p>Latest AI ETA requests saved in this browser.</p></div><button class="clear-chat-btn" onclick="clearPredictionHistory()">🗑️ Clear History</button></div><div class="report-table-wrap" id="professionalHistoryTable"><p style="color:#64748b;font-size:11px">No prediction history yet.</p></div></div>
+            <div class="analytics-card" style="margin-top:18px"><h3>📊 System Overview</h3><p>Operational snapshot</p><div class="chart" style="margin-bottom:0"><div class="bar-wrap"><div class="bar-value" id="chartRunningValue">22</div><div class="bar" id="barRunning" style="height:75%"></div><div class="bar-label">Running</div></div><div class="bar-wrap"><div class="bar-value" id="chartStoppedValue">3</div><div class="bar" id="barStopped" style="height:15%"></div><div class="bar-label">Stopped</div></div><div class="bar-wrap"><div class="bar-value" id="chartPredictionValue">285</div><div class="bar" id="barPredictions" style="height:92%"></div><div class="bar-label">Predictions</div></div></div></div>
+        </div>
+    </main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+
+<script>
+
+/* ======================================================
+   BUS DATA - BUS NAMES WITH INTERNAL IDS
+====================================================== */
+
+const buses = [
+
+{
+number:"B001",
+name:"Parveen Travels",
+location:"Chennai",
+lat:13.0827,
+lng:80.2707,
+status:"Running",
+distance:5,
+traffic:1,
+weather:1,
+previous_time:12
+},
+
+{
+number:"B002",
+name:"KPN Travels",
+location:"Coimbatore",
+lat:11.0168,
+lng:76.9558,
+status:"Running",
+distance:10,
+traffic:2,
+weather:1,
+previous_time:22
+},
+
+{
+number:"B003",
+name:"SRS Travels",
+location:"Madurai",
+lat:9.9252,
+lng:78.1198,
+status:"Running",
+distance:15,
+traffic:3,
+weather:1,
+previous_time:35
+},
+
+{
+number:"B004",
+name:"Kallada Travels",
+location:"Tiruchirappalli",
+lat:10.7905,
+lng:78.7047,
+status:"Running",
+distance:20,
+traffic:2,
+weather:2,
+previous_time:42
+},
+
+{
+number:"B005",
+name:"Orange Tours and Travels",
+location:"Salem",
+lat:11.6643,
+lng:78.1460,
+status:"Running",
+distance:8,
+traffic:1,
+weather:1,
+previous_time:18
+},
+
+{
+number:"B006",
+name:"Rathimeena Travels",
+location:"Tirunelveli",
+lat:8.7139,
+lng:77.7567,
+status:"Running",
+distance:12,
+traffic:3,
+weather:2,
+previous_time:30
+},
+
+{
+number:"B007",
+name:"SRM Travels",
+location:"Erode",
+lat:11.3410,
+lng:77.7172,
+status:"Running",
+distance:18,
+traffic:2,
+weather:1,
+previous_time:38
+},
+
+{
+number:"B008",
+name:"YBM Travels",
+location:"Tiruppur",
+lat:11.1085,
+lng:77.3411,
+status:"Running",
+distance:25,
+traffic:3,
+weather:2,
+previous_time:55
+},
+
+{
+number:"B009",
+name:"Vignesh TAT",
+location:"Thanjavur",
+lat:10.7867,
+lng:79.1378,
+status:"Running",
+distance:7,
+traffic:1,
+weather:1,
+previous_time:15
+},
+
+{
+number:"B010",
+name:"Conti Travels",
+location:"Vellore",
+lat:12.9165,
+lng:79.1325,
+status:"Running",
+distance:14,
+traffic:2,
+weather:1,
+previous_time:32
+},
+
+{
+number:"B011",
+name:"Madurai Radha Travels",
+location:"Hosur",
+lat:12.7409,
+lng:77.8253,
+status:"Running",
+distance:22,
+traffic:3,
+weather:2,
+previous_time:48
+},
+
+{
+number:"B012",
+name:"City Travels",
+location:"Dindigul",
+lat:10.3673,
+lng:77.9803,
+status:"Running",
+distance:9,
+traffic:2,
+weather:1,
+previous_time:20
+},
+
+{
+number:"B013",
+name:"Universal Travels",
+location:"Karur",
+lat:10.9601,
+lng:78.0766,
+status:"Running",
+distance:16,
+traffic:1,
+weather:1,
+previous_time:34
+},
+
+{
+number:"B014",
+name:"A1 Travels",
+location:"Namakkal",
+lat:11.2194,
+lng:78.1677,
+status:"Running",
+distance:30,
+traffic:3,
+weather:2,
+previous_time:65
+},
+
+{
+number:"B015",
+name:"Sree Kaleswari Travels",
+location:"Thoothukudi",
+lat:8.7642,
+lng:78.1348,
+status:"Stopped",
+distance:11,
+traffic:2,
+weather:1,
+previous_time:25
+},
+
+{
+number:"B016",
+name:"Sri Krishna Travels",
+location:"Nagercoil",
+lat:8.1833,
+lng:77.4119,
+status:"Running",
+distance:6,
+traffic:1,
+weather:1,
+previous_time:14
+},
+
+{
+number:"B017",
+name:"Evacay Bus",
+location:"Rameswaram",
+lat:9.2881,
+lng:79.3129,
+status:"Running",
+distance:13,
+traffic:2,
+weather:2,
+previous_time:29
+},
+
+{
+number:"B018",
+name:"Hebron Transports",
+location:"Cuddalore",
+lat:11.7480,
+lng:79.7714,
+status:"Running",
+distance:19,
+traffic:3,
+weather:1,
+previous_time:43
+},
+
+{
+number:"B019",
+name:"Royal Travels",
+location:"Villupuram",
+lat:11.9401,
+lng:79.4861,
+status:"Running",
+distance:24,
+traffic:2,
+weather:2,
+previous_time:52
+},
+
+{
+number:"B020",
+name:"IntrCity SmartBus",
+location:"Kanchipuram",
+lat:12.8342,
+lng:79.7036,
+status:"Running",
+distance:17,
+traffic:1,
+weather:1,
+previous_time:36
+},
+
+{
+number:"B021",
+name:"Zingbus",
+location:"Chengalpattu",
+lat:12.6819,
+lng:79.9671,
+status:"Running",
+distance:28,
+traffic:3,
+weather:2,
+previous_time:60
+},
+
+{
+number:"B022",
+name:"NueGo (Electric)",
+location:"Sivakasi",
+lat:9.4490,
+lng:77.7978,
+status:"Stopped",
+distance:10,
+traffic:1,
+weather:1,
+previous_time:21
+},
+
+{
+number:"B023",
+name:"Amarnath Travels",
+location:"Kumbakonam",
+lat:10.9602,
+lng:79.3845,
+status:"Running",
+distance:21,
+traffic:2,
+weather:1,
+previous_time:45
+},
+
+{
+number:"B024",
+name:"JBS Travels",
+location:"Dharmapuri",
+lat:12.1211,
+lng:78.1582,
+status:"Running",
+distance:15,
+traffic:3,
+weather:2,
+previous_time:37
+},
+
+{
+number:"B025",
+name:"Lion Travels",
+location:"Krishnagiri",
+lat:12.5186,
+lng:78.2137,
+status:"Stopped",
+distance:26,
+traffic:2,
+weather:1,
+previous_time:56
+}
+,
+
+{
+number:"B026",
+name:"Thiru Travels",
+location:"Chennai",
+lat:13.1007,
+lng:80.2887,
+status:"Running",
+distance:7,
+traffic:3,
+weather:1,
+previous_time:33
+},
+
+{
+number:"B027",
+name:"Shama Sardar Travels",
+location:"Coimbatore",
+lat:11.0348,
+lng:76.9738,
+status:"Running",
+distance:14,
+traffic:1,
+weather:2,
+previous_time:36
+},
+
+{
+number:"B028",
+name:"JRS Travels",
+location:"Madurai",
+lat:9.9432,
+lng:78.1378,
+status:"Stopped",
+distance:21,
+traffic:2,
+weather:1,
+previous_time:39
+},
+
+{
+number:"B029",
+name:"Sangita Travels",
+location:"Tiruchirappalli",
+lat:10.8085,
+lng:78.7227,
+status:"Running",
+distance:28,
+traffic:3,
+weather:2,
+previous_time:42
+},
+
+{
+number:"B030",
+name:"Jahan Travels",
+location:"Salem",
+lat:11.6823,
+lng:78.1640,
+status:"Running",
+distance:35,
+traffic:1,
+weather:1,
+previous_time:45
+},
+
+{
+number:"B031",
+name:"VRL Travels",
+location:"Tirunelveli",
+lat:8.7319,
+lng:77.7747,
+status:"Running",
+distance:6,
+traffic:2,
+weather:2,
+previous_time:48
+},
+
+{
+number:"B032",
+name:"Neeta Tours and Travels",
+location:"Erode",
+lat:11.3590,
+lng:77.7352,
+status:"Running",
+distance:13,
+traffic:3,
+weather:1,
+previous_time:51
+},
+
+{
+number:"B033",
+name:"Gujarat Travels",
+location:"Tiruppur",
+lat:11.1265,
+lng:77.3591,
+status:"Running",
+distance:20,
+traffic:1,
+weather:2,
+previous_time:54
+},
+
+{
+number:"B034",
+name:"Patel Travels",
+location:"Thanjavur",
+lat:10.8047,
+lng:79.1558,
+status:"Running",
+distance:27,
+traffic:2,
+weather:1,
+previous_time:57
+},
+
+{
+number:"B035",
+name:"Paulo Travels",
+location:"Vellore",
+lat:12.9345,
+lng:79.1505,
+status:"Stopped",
+distance:34,
+traffic:3,
+weather:2,
+previous_time:60
+},
+
+{
+number:"B036",
+name:"Shrinath Travels",
+location:"Hosur",
+lat:12.7589,
+lng:77.8433,
+status:"Running",
+distance:5,
+traffic:1,
+weather:1,
+previous_time:63
+},
+
+{
+number:"B037",
+name:"Hans Travels",
+location:"Dindigul",
+lat:10.3853,
+lng:77.9983,
+status:"Running",
+distance:12,
+traffic:2,
+weather:2,
+previous_time:11
+},
+
+{
+number:"B038",
+name:"Chartered Speed",
+location:"Karur",
+lat:10.9781,
+lng:78.0946,
+status:"Running",
+distance:19,
+traffic:3,
+weather:1,
+previous_time:14
+},
+
+{
+number:"B039",
+name:"Sharma Travels",
+location:"Namakkal",
+lat:11.2374,
+lng:78.1857,
+status:"Running",
+distance:26,
+traffic:1,
+weather:2,
+previous_time:17
+},
+
+{
+number:"B040",
+name:"Verma Travels",
+location:"Thoothukudi",
+lat:8.7822,
+lng:78.1528,
+status:"Running",
+distance:33,
+traffic:2,
+weather:1,
+previous_time:20
+},
+
+{
+number:"B041",
+name:"Eagle Travels",
+location:"Nagercoil",
+lat:8.2013,
+lng:77.4299,
+status:"Running",
+distance:40,
+traffic:3,
+weather:2,
+previous_time:23
+},
+
+{
+number:"B042",
+name:"Kanker Roadways",
+location:"Rameswaram",
+lat:9.3061,
+lng:79.3309,
+status:"Stopped",
+distance:11,
+traffic:1,
+weather:1,
+previous_time:26
+},
+
+{
+number:"B043",
+name:"Komitla Travels",
+location:"Cuddalore",
+lat:11.7660,
+lng:79.7894,
+status:"Running",
+distance:18,
+traffic:2,
+weather:2,
+previous_time:29
+},
+
+{
+number:"B044",
+name:"Humsafar Travels",
+location:"Villupuram",
+lat:11.9581,
+lng:79.5041,
+status:"Running",
+distance:25,
+traffic:3,
+weather:1,
+previous_time:32
+},
+
+{
+number:"B045",
+name:"Mahasagar Travels",
+location:"Kanchipuram",
+lat:12.8522,
+lng:79.7216,
+status:"Running",
+distance:32,
+traffic:1,
+weather:2,
+previous_time:35
+},
+
+{
+number:"B046",
+name:"Rajdhani Express",
+location:"Chengalpattu",
+lat:12.6999,
+lng:79.9851,
+status:"Running",
+distance:39,
+traffic:2,
+weather:1,
+previous_time:38
+},
+
+{
+number:"B047",
+name:"Parveen Travels",
+location:"Sivakasi",
+lat:9.4670,
+lng:77.8158,
+status:"Running",
+distance:10,
+traffic:3,
+weather:2,
+previous_time:41
+},
+
+{
+number:"B048",
+name:"KPN Travels",
+location:"Kumbakonam",
+lat:10.9782,
+lng:79.4025,
+status:"Running",
+distance:17,
+traffic:1,
+weather:1,
+previous_time:44
+},
+
+{
+number:"B049",
+name:"SRS Travels",
+location:"Dharmapuri",
+lat:12.1391,
+lng:78.1762,
+status:"Stopped",
+distance:24,
+traffic:2,
+weather:2,
+previous_time:47
+},
+
+{
+number:"B050",
+name:"Kallada Travels",
+location:"Krishnagiri",
+lat:12.5366,
+lng:78.2317,
+status:"Running",
+distance:31,
+traffic:3,
+weather:1,
+previous_time:50
+},
+
+{
+number:"B051",
+name:"Orange Tours and Travels",
+location:"Chennai",
+lat:13.1187,
+lng:80.3067,
+status:"Running",
+distance:38,
+traffic:1,
+weather:2,
+previous_time:53
+},
+
+{
+number:"B052",
+name:"Rathimeena Travels",
+location:"Coimbatore",
+lat:11.0528,
+lng:76.9918,
+status:"Running",
+distance:9,
+traffic:2,
+weather:1,
+previous_time:56
+},
+
+{
+number:"B053",
+name:"SRM Travels",
+location:"Madurai",
+lat:9.9612,
+lng:78.1558,
+status:"Running",
+distance:16,
+traffic:3,
+weather:2,
+previous_time:59
+},
+
+{
+number:"B054",
+name:"YBM Travels",
+location:"Tiruchirappalli",
+lat:10.8265,
+lng:78.7407,
+status:"Running",
+distance:23,
+traffic:1,
+weather:1,
+previous_time:62
+},
+
+{
+number:"B055",
+name:"Vignesh TAT",
+location:"Salem",
+lat:11.7003,
+lng:78.1820,
+status:"Running",
+distance:30,
+traffic:2,
+weather:2,
+previous_time:10
+},
+
+{
+number:"B056",
+name:"Conti Travels",
+location:"Tirunelveli",
+lat:8.7499,
+lng:77.7927,
+status:"Stopped",
+distance:37,
+traffic:3,
+weather:1,
+previous_time:13
+},
+
+{
+number:"B057",
+name:"Madurai Radha Travels",
+location:"Erode",
+lat:11.3770,
+lng:77.7532,
+status:"Running",
+distance:8,
+traffic:1,
+weather:2,
+previous_time:16
+},
+
+{
+number:"B058",
+name:"City Travels",
+location:"Tiruppur",
+lat:11.1445,
+lng:77.3771,
+status:"Running",
+distance:15,
+traffic:2,
+weather:1,
+previous_time:19
+},
+
+{
+number:"B059",
+name:"Universal Travels",
+location:"Thanjavur",
+lat:10.8227,
+lng:79.1738,
+status:"Running",
+distance:22,
+traffic:3,
+weather:2,
+previous_time:22
+},
+
+{
+number:"B060",
+name:"A1 Travels",
+location:"Vellore",
+lat:12.9525,
+lng:79.1685,
+status:"Running",
+distance:29,
+traffic:1,
+weather:1,
+previous_time:25
+},
+
+{
+number:"B061",
+name:"Sree Kaleswari Travels",
+location:"Hosur",
+lat:12.7769,
+lng:77.8613,
+status:"Running",
+distance:36,
+traffic:2,
+weather:2,
+previous_time:28
+},
+
+{
+number:"B062",
+name:"Sri Krishna Travels",
+location:"Dindigul",
+lat:10.4033,
+lng:78.0163,
+status:"Running",
+distance:7,
+traffic:3,
+weather:1,
+previous_time:31
+},
+
+{
+number:"B063",
+name:"Evacay Bus",
+location:"Karur",
+lat:10.9961,
+lng:78.1126,
+status:"Stopped",
+distance:14,
+traffic:1,
+weather:2,
+previous_time:34
+},
+
+{
+number:"B064",
+name:"Hebron Transports",
+location:"Namakkal",
+lat:11.2554,
+lng:78.2037,
+status:"Running",
+distance:21,
+traffic:2,
+weather:1,
+previous_time:37
+},
+
+{
+number:"B065",
+name:"Royal Travels",
+location:"Thoothukudi",
+lat:8.8002,
+lng:78.1708,
+status:"Running",
+distance:28,
+traffic:3,
+weather:2,
+previous_time:40
+},
+
+{
+number:"B066",
+name:"IntrCity SmartBus",
+location:"Nagercoil",
+lat:8.2193,
+lng:77.4479,
+status:"Running",
+distance:35,
+traffic:1,
+weather:1,
+previous_time:43
+},
+
+{
+number:"B067",
+name:"Zingbus",
+location:"Rameswaram",
+lat:9.3241,
+lng:79.3489,
+status:"Running",
+distance:6,
+traffic:2,
+weather:2,
+previous_time:46
+},
+
+{
+number:"B068",
+name:"NueGo (Electric)",
+location:"Cuddalore",
+lat:11.7840,
+lng:79.8074,
+status:"Running",
+distance:13,
+traffic:3,
+weather:1,
+previous_time:49
+},
+
+{
+number:"B069",
+name:"Amarnath Travels",
+location:"Villupuram",
+lat:11.9761,
+lng:79.5221,
+status:"Running",
+distance:20,
+traffic:1,
+weather:2,
+previous_time:52
+},
+
+{
+number:"B070",
+name:"JBS Travels",
+location:"Kanchipuram",
+lat:12.8702,
+lng:79.7396,
+status:"Stopped",
+distance:27,
+traffic:2,
+weather:1,
+previous_time:55
+},
+
+{
+number:"B071",
+name:"Lion Travels",
+location:"Chengalpattu",
+lat:12.7179,
+lng:80.0031,
+status:"Running",
+distance:34,
+traffic:3,
+weather:2,
+previous_time:58
+},
+
+{
+number:"B072",
+name:"Thiru Travels",
+location:"Sivakasi",
+lat:9.4850,
+lng:77.8338,
+status:"Running",
+distance:5,
+traffic:1,
+weather:1,
+previous_time:61
+},
+
+{
+number:"B073",
+name:"Shama Sardar Travels",
+location:"Kumbakonam",
+lat:10.9962,
+lng:79.4205,
+status:"Running",
+distance:12,
+traffic:2,
+weather:2,
+previous_time:64
+},
+
+{
+number:"B074",
+name:"JRS Travels",
+location:"Dharmapuri",
+lat:12.1571,
+lng:78.1942,
+status:"Running",
+distance:19,
+traffic:3,
+weather:1,
+previous_time:12
+},
+
+{
+number:"B075",
+name:"Sangita Travels",
+location:"Krishnagiri",
+lat:12.5546,
+lng:78.2497,
+status:"Running",
+distance:26,
+traffic:1,
+weather:2,
+previous_time:15
+},
+
+{
+number:"B076",
+name:"Jahan Travels",
+location:"Chennai",
+lat:13.1367,
+lng:80.3247,
+status:"Running",
+distance:33,
+traffic:2,
+weather:1,
+previous_time:18
+},
+
+{
+number:"B077",
+name:"VRL Travels",
+location:"Coimbatore",
+lat:11.0708,
+lng:77.0098,
+status:"Stopped",
+distance:40,
+traffic:3,
+weather:2,
+previous_time:21
+},
+
+{
+number:"B078",
+name:"Neeta Tours and Travels",
+location:"Madurai",
+lat:9.9792,
+lng:78.1738,
+status:"Running",
+distance:11,
+traffic:1,
+weather:1,
+previous_time:24
+},
+
+{
+number:"B079",
+name:"Gujarat Travels",
+location:"Tiruchirappalli",
+lat:10.8445,
+lng:78.7587,
+status:"Running",
+distance:18,
+traffic:2,
+weather:2,
+previous_time:27
+},
+
+{
+number:"B080",
+name:"Patel Travels",
+location:"Salem",
+lat:11.7183,
+lng:78.2000,
+status:"Running",
+distance:25,
+traffic:3,
+weather:1,
+previous_time:30
+},
+
+{
+number:"B081",
+name:"Paulo Travels",
+location:"Tirunelveli",
+lat:8.7679,
+lng:77.8107,
+status:"Running",
+distance:32,
+traffic:1,
+weather:2,
+previous_time:33
+},
+
+{
+number:"B082",
+name:"Shrinath Travels",
+location:"Erode",
+lat:11.3950,
+lng:77.7712,
+status:"Running",
+distance:39,
+traffic:2,
+weather:1,
+previous_time:36
+},
+
+{
+number:"B083",
+name:"Hans Travels",
+location:"Tiruppur",
+lat:11.1625,
+lng:77.3951,
+status:"Running",
+distance:10,
+traffic:3,
+weather:2,
+previous_time:39
+},
+
+{
+number:"B084",
+name:"Chartered Speed",
+location:"Thanjavur",
+lat:10.8407,
+lng:79.1918,
+status:"Stopped",
+distance:17,
+traffic:1,
+weather:1,
+previous_time:42
+},
+
+{
+number:"B085",
+name:"Sharma Travels",
+location:"Vellore",
+lat:12.9705,
+lng:79.1865,
+status:"Running",
+distance:24,
+traffic:2,
+weather:2,
+previous_time:45
+},
+
+{
+number:"B086",
+name:"Verma Travels",
+location:"Hosur",
+lat:12.7949,
+lng:77.8793,
+status:"Running",
+distance:31,
+traffic:3,
+weather:1,
+previous_time:48
+},
+
+{
+number:"B087",
+name:"Eagle Travels",
+location:"Dindigul",
+lat:10.4213,
+lng:78.0343,
+status:"Running",
+distance:38,
+traffic:1,
+weather:2,
+previous_time:51
+},
+
+{
+number:"B088",
+name:"Kanker Roadways",
+location:"Karur",
+lat:11.0141,
+lng:78.1306,
+status:"Running",
+distance:9,
+traffic:2,
+weather:1,
+previous_time:54
+},
+
+{
+number:"B089",
+name:"Komitla Travels",
+location:"Namakkal",
+lat:11.2734,
+lng:78.2217,
+status:"Running",
+distance:16,
+traffic:3,
+weather:2,
+previous_time:57
+},
+
+{
+number:"B090",
+name:"Humsafar Travels",
+location:"Thoothukudi",
+lat:8.8182,
+lng:78.1888,
+status:"Running",
+distance:23,
+traffic:1,
+weather:1,
+previous_time:60
+}
+
+];
+
+
+/* ======================================================
+   BUS IMAGES
+====================================================== */
+
+function displayBusImages(){
+
+    const grid = document.getElementById("busImageGrid");
+
+    if(!grid){
+        return;
+    }
+
+    grid.innerHTML = buses.map(function(bus){
+
+        return `
+            <div class="bus-image-card">
+
+                <img
+                    src="/static/images/buses/${bus.number}.jpg"
+                    alt="${bus.name}"
+                    onerror="this.onerror=null; this.style.display='none'; this.parentElement.classList.add('image-missing');"
+                >
+
+                <div class="bus-image-info">
+
+                    <h3>🚌 ${bus.name}</h3>
+
+                    <p><b>${bus.name}</b></p>
+
+                    <p>📍 ${bus.location}</p>
+
+                </div>
+
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+displayBusImages();
+
+
+/* ======================================================
+   LOGIN
+====================================================== */
+
+function togglePassword(){
+    const passwordInput = document.getElementById("password");
+    const toggleButton = document.querySelector(".password-toggle");
+
+    if(passwordInput.type === "password"){
+        passwordInput.type = "text";
+        toggleButton.innerText = "🙈";
+    }else{
+        passwordInput.type = "password";
+        toggleButton.innerText = "👁️";
+    }
+}
+
+
+/* Existing login credentials and validation are unchanged */
+function login(){
+
+const username = document.getElementById("username").value.trim();
+const password = document.getElementById("password").value.trim();
+
+if(username === "user" && password === "1234"){
+
+    window.currentRole = "user";
+
+    document.getElementById("loginPage").style.display="none";
+    document.getElementById("dashboard").style.display="block";
+    document.getElementById("adminNav").style.display="none";
+
+    setTimeout(function(){
+        initProfessionalDashboard();
+        showSection("bookingSection");
+    },120);
+
+}
+else if(username === "admin" && password === "admin123"){
+
+    window.currentRole = "admin";
+
+    document.getElementById("loginPage").style.display="none";
+    document.getElementById("dashboard").style.display="block";
+    document.getElementById("adminNav").style.display="inline-flex";
+
+    setTimeout(function(){
+        initProfessionalDashboard();
+        loadAdminDashboard();
+    },120);
+
+}
+else{
+
+    document.getElementById("message").innerHTML =
+    "Invalid Username or Password";
+
+}
+
+}
+
+
+/* ======================================================
+   REGISTER
+====================================================== */
+
+function registerUser(){
+
+alert("Registration Successful!");
+
+}
+
+
+/* ======================================================
+   EXIT
+====================================================== */
+
+function exitApp(){
+
+if(confirm("Do you want to exit?")){
+
+document.body.innerHTML =
+"<h1 style='text-align:center;margin-top:100px;'>Thank You!</h1>";
+
+}
+
+}
+
+
+/* ======================================================
+   LOGOUT
+====================================================== */
+
+function logout(){
+
+document.getElementById("dashboard").style.display="none";
+
+document.getElementById("loginPage").style.display="flex";
+
+document.getElementById("username").value="";
+
+document.getElementById("password").value="";
+
+document.getElementById("adminNav").style.display="none";
+
+window.currentRole = "user";
+
+}
+
+
+/* ======================================================
+   SECTION NAVIGATION
+====================================================== */
+
+function showSection(sectionId, clickedLink){
+
+let sections = document.querySelectorAll(".section");
+sections.forEach(function(section){ section.classList.remove("active-section"); });
+
+const target = document.getElementById(sectionId);
+if(target){ target.classList.add("active-section"); }
+
+const links = document.querySelectorAll(".nav-link");
+links.forEach(function(link){ link.classList.remove("active"); });
+if(clickedLink){
+    clickedLink.classList.add("active");
+}else{
+    const sectionMap = {dashboardSection:0,mapSection:1,bookingSection:2,driverSection:3,predictionSection:4,chatbotSection:5,reportsSection:6,adminSection:7};
+    if(sectionMap[sectionId] !== undefined && links[sectionMap[sectionId]]){
+        links[sectionMap[sectionId]].classList.add("active");
+    }
+}
+
+if(sectionId === "mapSection"){
+    setTimeout(function(){ if(typeof map !== "undefined"){ map.invalidateSize(); } },200);
+}
+
+if(sectionId === "reportsSection"){ updateReportChart(); }
+if(sectionId === "adminSection"){
+    if(window.currentRole !== "admin"){
+        showSection("dashboardSection");
+        return;
+    }
+    loadAdminDashboard();
+}
+
+window.scrollTo({top:0,behavior:"smooth"});
+}
+
+
+
+
+/* ======================================================
+   ADMIN DASHBOARD MODULE
+====================================================== */
+
+window.currentRole = "user";
+
+async function loadAdminDashboard(){
+
+    if(window.currentRole !== "admin") return;
+
+    const busCountEl = document.getElementById("adminBusCount");
+    const runningCountEl = document.getElementById("adminRunningCount");
+    const bookingCountEl = document.getElementById("adminBookingCount");
+    const userCountEl = document.getElementById("adminUserCount");
+    const bookingList = document.getElementById("adminBookingsList");
+    const busList = document.getElementById("adminBusStatusList");
+
+    if(!bookingList || !busList) return;
+
+    const running = buses.filter(function(b){ return b.status === "Running"; }).length;
+
+    busCountEl.textContent = buses.length;
+    runningCountEl.textContent = running;
+
+    const predictionHistory =
+        JSON.parse(localStorage.getItem("predictionHistory") || "[]");
+
+    if(userCountEl){
+        userCountEl.textContent = "18";
+    }
+
+    try{
+
+        const response = await fetch("/api/bookings");
+
+        if(!response.ok){
+            throw new Error("Booking API returned an error.");
+        }
+
+        const bookings = await response.json();
+
+        bookingCountEl.textContent = bookings.length;
+
+        const recent = bookings.slice().reverse().slice(0,10);
+
+        if(!recent.length){
+
+            bookingList.innerHTML =
+                '<div class="booking-empty">🎫 No bookings found in SQLite yet.</div>';
+
+        }else{
+
+            bookingList.innerHTML = recent.map(function(b){
+
+                const status = b.status || "Confirmed";
+                const statusClass =
+                    status === "Confirmed"
+                    ? "admin-confirmed"
+                    : "admin-cancelled";
+
+                return `
+                    <div class="admin-booking-row">
+                        <div class="admin-booking-id">
+                            ${b.booking_id || "---"}
+                        </div>
+                        <div>
+                            <div class="admin-booking-main">
+                                🚌 ${b.bus_name || ((buses.find(bus => bus.number === b.bus_number) || {}).name) || "Bus"} • ${b.passenger_name || "---"}
+                            </div>
+                            <div class="admin-booking-sub">
+                                ${(b.from_location || "---")} → ${(b.to_location || "---")}
+                                • Seat ${b.seat_number || "---"} • ${b.passenger_contact || "No phone"}
+                            </div>
+                        </div>
+                        <div class="admin-booking-fare">
+                            ₹${b.fare ?? 0}
+                        </div>
+                        <div class="admin-booking-status ${statusClass}">
+                            ${status}
+                        </div>
+                    </div>
+                `;
+
+            }).join("");
+
+        }
+
+    }catch(error){
+
+        console.error("Admin booking load error:",error);
+
+        bookingCountEl.textContent = "—";
+
+        bookingList.innerHTML =
+            '<div class="booking-empty">⚠️ Could not load SQLite bookings. Make sure Flask is running.</div>';
+
+    }
+
+    busList.innerHTML = buses.map(function(bus){
+
+        const statusClass =
+            bus.status === "Running"
+            ? "admin-running"
+            : "admin-stopped";
+
+        return `
+            <div class="admin-status-row">
+                
+                <div>
+                    <div class="admin-bus-name">${bus.name}</div>
+                    <div class="admin-bus-loc">📍 ${bus.location}</div>
+                </div>
+                <div class="admin-mini-pill ${statusClass}">
+                    ${bus.status}
+                </div>
+            </div>
+        `;
+
+    }).join("");
+
+    const [stats] = await Promise.all([fetch("/api/analytics").then(r => r.json()), loadOperators()]);
+    document.getElementById("adminRevenue").textContent = "₹" + Math.round(stats.revenue || 0).toLocaleString("en-IN");
+}
+
+
+/* ======================================================
+   BUS BOOKING MODULE
+====================================================== */
+
+const bookingRoutes = [
+    {from:"Chennai",to:"Nagercoil",bus:"B016",time:"06:30 AM",fare:620},
+    {from:"Nagercoil",to:"Chennai",bus:"B016",time:"07:00 AM",fare:620},
+    {from:"Chennai",to:"Coimbatore",bus:"B002",time:"07:30 AM",fare:480},
+    {from:"Coimbatore",to:"Chennai",bus:"B002",time:"08:00 AM",fare:480},
+    {from:"Chennai",to:"Madurai",bus:"B003",time:"09:00 AM",fare:520},
+    {from:"Madurai",to:"Chennai",bus:"B003",time:"09:30 AM",fare:520},
+    {from:"Chennai",to:"Trichy",bus:"B004",time:"10:00 AM",fare:390},
+    {from:"Trichy",to:"Chennai",bus:"B004",time:"10:30 AM",fare:390},
+    {from:"Coimbatore",to:"Madurai",bus:"B007",time:"07:45 AM",fare:420},
+    {from:"Madurai",to:"Coimbatore",bus:"B007",time:"08:15 AM",fare:420},
+    {from:"Salem",to:"Chennai",bus:"B005",time:"06:45 AM",fare:360},
+    {from:"Chennai",to:"Salem",bus:"B005",time:"02:00 PM",fare:360},
+    {from:"Erode",to:"Chennai",bus:"B009",time:"07:15 AM",fare:400},
+    {from:"Chennai",to:"Erode",bus:"B009",time:"03:00 PM",fare:400},
+    {from:"Tiruppur",to:"Chennai",bus:"B008",time:"06:15 AM",fare:430},
+    {from:"Chennai",to:"Tiruppur",bus:"B008",time:"04:00 PM",fare:430},
+    {from:"Trichy",to:"Madurai",bus:"B010",time:"08:30 AM",fare:300},
+    {from:"Madurai",to:"Trichy",bus:"B010",time:"05:30 PM",fare:300},
+    {from:"Thanjavur",to:"Chennai",bus:"B011",time:"06:00 AM",fare:410},
+    {from:"Chennai",to:"Thanjavur",bus:"B011",time:"05:00 PM",fare:410},
+    {from:"Tirunelveli",to:"Chennai",bus:"B006",time:"06:20 AM",fare:590},
+    {from:"Chennai",to:"Tirunelveli",bus:"B006",time:"06:20 PM",fare:590},
+    {from:"Kanchipuram",to:"Chennai",bus:"B020",time:"08:00 AM",fare:180},
+    {from:"Chennai",to:"Kanchipuram",bus:"B020",time:"05:45 PM",fare:180},
+    {from:"Villupuram",to:"Chennai",bus:"B019",time:"07:00 AM",fare:300},
+    {from:"Chennai",to:"Villupuram",bus:"B019",time:"04:30 PM",fare:300},
+    {from:"Cuddalore",to:"Chennai",bus:"B018",time:"07:30 AM",fare:330},
+    {from:"Chennai",to:"Cuddalore",bus:"B018",time:"04:15 PM",fare:330},
+    {from:"Rameswaram",to:"Madurai",bus:"B017",time:"09:15 AM",fare:280},
+    {from:"Madurai",to:"Rameswaram",bus:"B017",time:"06:00 PM",fare:280}
+];
+
+let selectedBooking = null;
+let selectedSeat = null;
+
+async function initBooking(){
+    const from = document.getElementById("bookingFrom");
+    const to = document.getElementById("bookingTo");
+    const date = document.getElementById("bookingDate");
+    if(!from || !to || !date) return;
+
+    let savedRoutes = [];
+    try { savedRoutes = await (await fetch("/api/routes")).json(); } catch(e) {}
+    const cities = [...new Set([...bookingRoutes.flatMap(r => [r.from,r.to]), ...savedRoutes.flatMap(r=>[r.from_location,r.to_location,...r.stops.split(",").map(s=>s.trim())]), ...buses.map(b => b.location).filter(Boolean)])].sort();
+    const options = '<option value="">Select city</option>' + cities.map(c => '<option value="'+c+'">'+c+'</option>').join('');
+    from.innerHTML = options;
+    to.innerHTML = options;
+
+    const today = new Date();
+    const iso = new Date(today.getTime() - today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+    date.min = iso;
+    if(!date.value) date.value = iso;
+    renderMyBookings();
+    loadLatestDigitalTicket();
+    ["filterBusType","filterAc","filterLayout","filterStop"].forEach(id => {
+        const control = document.getElementById(id);
+        control.addEventListener(id === "filterStop" ? "input" : "change", () => {
+            if(document.getElementById("bookingFrom").value && document.getElementById("bookingTo").value) searchBookingBuses();
+        });
+    });
+}
+
+async function addFleetBus(){
+    const payload = {bus_number:document.getElementById("fleetNumber").value,bus_name:document.getElementById("fleetName").value,
+        bus_type:document.getElementById("fleetType").value,layout:document.getElementById("fleetLayout").value,
+        ac:document.getElementById("fleetAc").value === "true",capacity:Number(document.getElementById("fleetCapacity").value)};
+    const response = await fetch("/api/fleet",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const data = await response.json(); alert(data.message || (data.success ? "Bus added." : "Could not add bus."));
+}
+
+async function saveRouteSetup(){
+    const payload = {bus_number:document.getElementById("routeBus").value,from_location:document.getElementById("routeFrom").value,
+        to_location:document.getElementById("routeTo").value,boarding_time:document.getElementById("routeTime").value,
+        stops:document.getElementById("routeStops").value,base_fare:Number(document.getElementById("routeFare").value)};
+    const response = await fetch("/api/routes",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const data = await response.json(); alert(data.message || (data.success ? "Route saved." : "Could not save route."));
+}
+
+async function registerOperator(){
+    const response = await fetch("/api/operators",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        name:document.getElementById("operatorName").value,email:document.getElementById("operatorEmail").value})});
+    const data = await response.json(); if(!response.ok) alert(data.message || "Could not register operator."); await loadOperators();
+}
+
+async function loadOperators(){
+    const target = document.getElementById("operatorList"); if(!target) return;
+    try { const items = await (await fetch("/api/operators")).json();
+        target.innerHTML = "<h4>Operator approvals</h4>" + (items.length ? items.map(o => `<div class="my-booking-row"><b>${o.name}</b><span>${o.email}</span><span>${o.status}</span>${o.status === "Pending" ? `<button class="book-now" onclick="approveOperator(${o.id})">Approve</button>` : ""}</div>`).join("") : "<p>No operator applications yet.</p>");
+    } catch(e){ target.textContent = "Could not load operators."; }
+}
+
+async function approveOperator(id){ await fetch(`/api/operators/${id}/approve`,{method:"POST"}); await loadOperators(); }
+
+let driverWatchId = null, driverPingTimer = null;
+async function startDriverTrip(){
+    const bus = document.getElementById("driverBusNumber").value.trim().toUpperCase();
+    if(!bus || !navigator.geolocation){ alert("Enter a bus number and use a browser with GPS support."); return; }
+    const response = await fetch("/api/driver/trip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({bus_number:bus,status:"Running"})});
+    if(!response.ok){ alert("Could not start trip."); return; }
+    document.getElementById("driverStatus").textContent = "Trip running • sending GPS every 10 seconds.";
+    const sendPosition = position => fetch("/api/driver/location",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({bus_number:bus,latitude:position.coords.latitude,longitude:position.coords.longitude})}).catch(()=>{});
+    navigator.geolocation.getCurrentPosition(sendPosition, e => document.getElementById("driverStatus").textContent = "Trip running; GPS unavailable: " + e.message);
+    driverWatchId = navigator.geolocation.watchPosition(sendPosition, ()=>{}, {enableHighAccuracy:true,maximumAge:5000});
+    driverPingTimer = setInterval(()=>navigator.geolocation.getCurrentPosition(sendPosition,()=>{}),10000);
+}
+
+async function endDriverTrip(){
+    if(driverWatchId !== null) navigator.geolocation.clearWatch(driverWatchId); if(driverPingTimer) clearInterval(driverPingTimer);
+    driverWatchId = null; driverPingTimer = null;
+    const bus = document.getElementById("driverBusNumber").value.trim().toUpperCase(); if(!bus) return;
+    await fetch("/api/driver/trip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({bus_number:bus,status:"Completed"})});
+    document.getElementById("driverStatus").textContent = "Trip completed.";
+}
+
+async function searchBookingBuses(){
+    const from = document.getElementById("bookingFrom").value;
+    const to = document.getElementById("bookingTo").value;
+    const date = document.getElementById("bookingDate").value;
+    const results = document.getElementById("bookingResults");
+    const count = document.getElementById("bookingResultCount");
+
+    if(!from || !to || !date){
+        results.innerHTML = '<div class="booking-empty">⚠️ Please select From, To and Travel Date.</div>';
+        count.innerText = "0 Buses";
+        return;
+    }
+    if(from === to){
+        results.innerHTML = '<div class="booking-empty">⚠️ From and To cities must be different.</div>';
+        count.innerText = "0 Buses";
+        return;
+    }
+
+    const departureTimes = ["06:00 AM","06:30 AM","07:00 AM","07:30 AM","08:00 AM","08:30 AM","09:00 AM","09:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","01:00 PM","01:30 PM","02:00 PM","02:30 PM","03:00 PM","03:30 PM","04:00 PM","04:30 PM","05:00 PM","05:30 PM","06:00 PM","06:30 PM","07:00 PM","07:30 PM","08:00 PM","08:30 PM"];
+    let savedRoutes = [], savedFleet = [], occupancy = {};
+    try { [savedRoutes, savedFleet, occupancy] = await Promise.all([fetch("/api/routes").then(r=>r.json()), fetch("/api/fleet").then(r=>r.json()), fetch("/api/occupancy?date="+encodeURIComponent(date)).then(r=>r.json())]); } catch(e) {}
+    const candidates = buses.map(b=>({number:b.number,name:b.name,status:b.status}));
+    savedFleet.forEach(f=>{ if(!candidates.some(b=>b.number===f.bus_number)) candidates.push({number:f.bus_number,name:f.bus_name,status:"Running",fleet:f}); });
+    const matches = candidates.map((bus, index) => {
+        const listedRoute = bookingRoutes.find(r => r.from === from && r.to === to && r.bus === bus.number);
+        const configured = savedRoutes.find(r=>r.from_location===from && r.to_location===to && r.bus_number===bus.number);
+        if(savedFleet.length && !bus.fleet && !savedFleet.some(f=>f.bus_number===bus.number) && !listedRoute) return null;
+        if(!listedRoute && !configured && !bus.fleet) return null;
+        const weekend = [0,6].includes(new Date(date + "T00:00:00").getDay());
+        const baseFare = configured ? configured.base_fare : (listedRoute ? listedRoute.fare : Math.max(150, Math.round(180 + ((index * 37) % 420))));
+        const fleet = savedFleet.find(f=>f.bus_number===bus.number) || {};
+        const departure=configured?configured.boarding_time:(listedRoute?listedRoute.time:departureTimes[index % departureTimes.length]);
+        const timeMatch=/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i.exec(departure);
+        let hour=timeMatch?Number(timeMatch[1]):0;
+        if(timeMatch && timeMatch[3] && timeMatch[3].toUpperCase()==="PM" && hour<12) hour+=12;
+        if(timeMatch && timeMatch[3] && timeMatch[3].toUpperCase()==="AM" && hour===12) hour=0;
+        const nationalHoliday=["01-26","08-15","10-02"].includes(date.slice(5));
+        const crowd=occupancy[bus.number] || {capacity:Number(fleet.capacity||20),booked:0,predicted:0,percent:0};
+        const surge=(weekend?0.15:0)+(nationalHoliday?0.20:0)+([7,8,9,17,18,19,20].includes(hour)?0.10:0)+(crowd.percent>=70?0.10:0);
+        return {
+            from: from,
+            to: to,
+            bus: bus.number,
+            time: departure,
+            fare: Math.round(baseFare * (1+surge)), surgePercent:Math.round(surge*100),
+            crowd:crowd,
+            type: fleet.bus_type || ["Volvo", "Scania", "AC"][index % 3], ac: fleet.bus_number ? !!fleet.ac : index % 4 !== 0,
+            layout: fleet.layout || (index % 2 ? "Sleeper" : "Seater"), capacity:Number(fleet.capacity || 20),
+            stops: configured ? [from, ...configured.stops.split(",").map(s=>s.trim()).filter(Boolean), to] : [from, "Boarding Point " + (index % 4 + 1), "Drop Point " + (index % 3 + 1), to]
+        };
+    }).filter(Boolean).filter(r => {
+        const type = document.getElementById("filterBusType").value;
+        const ac = document.getElementById("filterAc").value;
+        const layout = document.getElementById("filterLayout").value;
+        const stop = document.getElementById("filterStop").value.trim().toLowerCase();
+        return (!type || r.type === type) && (!ac || (ac === "ac") === r.ac) &&
+            (!layout || r.layout === layout) && (!stop || r.stops.some(s => s.toLowerCase().includes(stop)));
+    });
+    count.innerText = matches.length + (matches.length === 1 ? " Bus" : " Buses");
+
+    if(!matches.length){
+        results.innerHTML = '<div class="booking-empty">🚌 No buses are listed in the demo data yet.</div>';
+        return;
+    }
+
+    results.innerHTML = matches.map((r,index) => {
+        const bus = buses.find(b => b.number === r.bus) || {name:(savedFleet.find(f=>f.bus_number===r.bus)||{}).bus_name,status:"Running"};
+        const status = bus ? bus.status : "Running";
+        const eta = bus && bus.status === "Running" ? (mapEtaCache[bus.number] || bus.previous_time) : null;
+        return '<div class="booking-bus-card">'+
+            
+            '<div><div class="booking-bus-name">🚌 '+(bus ? bus.name : r.bus+' Express')+'</div><div class="booking-route-text">'+r.type+' • '+(r.ac?'AC':'Non-AC')+' • '+r.layout+'<br>'+r.from+' → '+r.to+'</div></div>'+
+            '<div class="booking-time">🕐 '+r.time+'<div class="booking-route-text">⏱️ AI ETA '+(eta === null ? 'Stopped' : eta+' min')+'<br>Board: '+r.stops[1]+' • Drop: '+r.stops[2]+'<br>👥 Crowd estimate: '+r.crowd.predicted+'/'+r.crowd.capacity+' ('+r.crowd.percent+'%)<br>⚡ Surge +'+r.surgePercent+'%</div></div>'+
+            '<div class="booking-fare">₹'+r.fare+'</div>'+
+            '<button class="book-now" onclick="selectBookingBus('+index+')">Book Now →</button>'+
+            '</div>';
+    }).join('');
+    window.currentBookingResults = matches;
+}
+
+function selectBookingBus(index){
+    const matches = window.currentBookingResults || [];
+    selectedBooking = matches[index];
+    selectedSeat = null;
+    if(!selectedBooking) return;
+
+    document.getElementById("seatArea").style.display = "block";
+    document.getElementById("selectedBusBookingText").innerText = selectedBooking.bus+' • '+selectedBooking.from+' → '+selectedBooking.to+' • '+selectedBooking.time;
+    document.getElementById("bookingFare").innerText = "₹"+selectedBooking.fare;
+    document.getElementById("bookingConfirmation").style.display = "none";
+    renderSeats();
+    document.getElementById("seatArea").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+async function getBookedSeats(busNumber,date){
+    try{
+        const response = await fetch("/api/bookings");
+        if(!response.ok) return [];
+        const bookings = await response.json();
+
+        return bookings
+            .filter(b =>
+                b.bus_number === busNumber &&
+                b.travel_date === date &&
+                b.status === "Confirmed"
+            )
+            .map(b => b.seat_number);
+    }catch(error){
+        console.error("Could not load booked seats:", error);
+        return [];
+    }
+}
+
+async function renderSeats(){
+    const grid = document.getElementById("seatGrid");
+    if(!grid || !selectedBooking) return;
+    const date = document.getElementById("bookingDate").value;
+    const booked = await getBookedSeats(selectedBooking.bus,date);
+    const half = Math.ceil((selectedBooking.capacity || 20) / 2);
+    booked.forEach(seat => { const match = /^S(\d+)$/.exec(seat); if(match){ const n=Number(match[1]); const mapped=n<=half?"L"+n:"U"+(n-half); if(!booked.includes(mapped)) booked.push(mapped); } });
+    let html = '<div style="grid-column:1/-1;font-weight:800;color:#64748b">LOWER BERTH / SEATS</div>';
+    for(let i=1;i<=half;i++){ const id="L"+i, isBooked=booked.includes(id);
+        html += '<button type="button" class="seat '+(isBooked?'booked':'')+' '+(selectedSeat===id?'selected':'')+'" '+(isBooked?'disabled':'onclick="chooseSeat(\''+id+'\')"')+'>'+id+'</button>'; }
+    html += '<div style="grid-column:1/-1;font-weight:800;color:#64748b;margin-top:10px">UPPER BERTH</div>';
+    for(let i=1;i<=Math.floor((selectedBooking.capacity || 20)/2);i++){ const id="U"+i, isBooked=booked.includes(id);
+        html += '<button type="button" class="seat '+(isBooked?'booked':'')+' '+(selectedSeat===id?'selected':'')+'" '+(isBooked?'disabled':'onclick="chooseSeat(\''+id+'\')"')+'>'+id+'</button>'; }
+    grid.innerHTML = html;
+    document.getElementById("selectedSeatBadge").innerText = selectedSeat ? "Seat "+selectedSeat : "No Seat Selected";
+}
+
+function chooseSeat(seat){
+    selectedSeat = seat;
+    renderSeats();
+}
+
+async function confirmBusBooking(){
+
+    if(!selectedBooking){
+        alert("Please select a bus first.");
+        return;
+    }
+
+    if(!selectedSeat){
+        alert("Please select a seat.");
+        return;
+    }
+
+    const name = document.getElementById("passengerName").value.trim();
+    const age = document.getElementById("passengerAge").value.trim();
+    const contact = document.getElementById("passengerContact").value.trim();
+    const date = document.getElementById("bookingDate").value;
+
+    if(!name){
+        alert("Please enter passenger name.");
+        document.getElementById("passengerName").focus();
+        return;
+    }
+
+    if(!age || Number(age) < 1 || Number(age) > 100){
+        alert("Please enter a valid passenger age.");
+        document.getElementById("passengerAge").focus();
+        return;
+    }
+
+    if(!/^\d{10}$/.test(contact)){
+        alert("Please enter a valid 10-digit contact number.");
+        document.getElementById("passengerContact").focus();
+        return;
+    }
+
+    if(!date){
+        alert("Please select travel date.");
+        return;
+    }
+
+    if(!confirm("Demo payment: Pay ₹" + selectedBooking.fare + " by simulated UPI/card? This will not charge real money.")) return;
+
+    const bookedSeats = await getBookedSeats(selectedBooking.bus,date);
+
+    if(bookedSeats.includes(selectedSeat)){
+        alert("That seat is already booked. Please select another seat.");
+        await renderSeats();
+        return;
+    }
+
+    const bookingId = "BK" + Date.now().toString().slice(-8);
+    const busInfo = buses.find(b => b.number === selectedBooking.bus) || {};
+    const busName = busInfo.name || selectedBooking.bus + " Express";
+
+    const record = {
+        id: bookingId,
+        bus: selectedBooking.bus,
+        busName: busName,
+        from: selectedBooking.from,
+        to: selectedBooking.to,
+        date: date,
+        time: selectedBooking.time,
+        seat: selectedSeat,
+        passenger: name,
+        age: age,
+        contact: contact,
+        fare: selectedBooking.fare,
+        status: "Confirmed",
+        createdAt: new Date().toISOString()
+    };
+
+    try{
+        const response = await fetch("/api/bookings",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+                booking_id: record.id,
+                username: "user",
+                bus_number: record.bus,
+                bus_name: record.busName,
+                from_location: record.from,
+                to_location: record.to,
+                travel_date: record.date,
+                travel_time: record.time,
+                seat_number: record.seat,
+                passenger_name: record.passenger,
+                passenger_age: Number(record.age),
+                passenger_contact: record.contact,
+                fare: Number(record.fare)
+            })
+        });
+
+        const data = await response.json();
+
+        if(!response.ok || data.success === false){
+            alert(data.message || data.error || "Booking could not be saved.");
+            return;
+        }
+
+        record.ticketToken = data.ticket_token;
+
+        localStorage.setItem("latestBusTicket", JSON.stringify(record));
+
+        const confirmation = document.getElementById("bookingConfirmation");
+
+        confirmation.innerHTML =
+            '<h3>✅ Booking Confirmed!</h3>' +
+            '<p>Your booking has been saved to the SQLite database.</p>' +
+            '<div class="booking-confirm-grid">' +
+                '<div class="confirm-item"><small>BOOKING ID</small><b>' + bookingId + '</b></div>' +
+                '<div class="confirm-item"><small>BUS</small><b>' + record.bus + '</b></div>' +
+                '<div class="confirm-item"><small>ROUTE</small><b>' + record.from + ' → ' + record.to + '</b></div>' +
+                '<div class="confirm-item"><small>DATE</small><b>' + record.date + '</b></div>' +
+                '<div class="confirm-item"><small>SEAT</small><b>' + record.seat + '</b></div>' +
+                '<div class="confirm-item"><small>FARE</small><b>₹' + record.fare + '</b></div>' +
+            '</div>';
+
+        confirmation.style.display = "block";
+
+        renderDigitalTicket(record);
+        if(document.getElementById("ticketAlertsOptIn").checked){
+            await sendTicketAlert("whatsapp",true);
+            await sendTicketAlert("sms",true);
+        }
+        await renderSeats();
+        await renderMyBookings();
+
+        document.getElementById("digitalTicket").scrollIntoView({
+            behavior:"smooth",
+            block:"start"
+        });
+
+    }catch(error){
+        console.error("Booking save error:",error);
+        alert("Could not connect to the Flask server. Please make sure python app.py is running.");
+    }
+}
+
+function renderDigitalTicket(ticket){
+
+    if(!ticket) return;
+
+    document.getElementById("ticketBookingId").textContent = ticket.id || "---";
+    document.getElementById("ticketBus").textContent = ticket.busName || ((buses.find(b => b.number === ticket.bus) || {}).name) || ticket.bus || "---";
+    document.getElementById("ticketFrom").textContent = ticket.from || "---";
+    document.getElementById("ticketTo").textContent = ticket.to || "---";
+    document.getElementById("ticketDate").textContent = ticket.date || "---";
+    document.getElementById("ticketTime").textContent = ticket.time || "---";
+    document.getElementById("ticketSeat").textContent = ticket.seat || "---";
+    document.getElementById("ticketPassenger").textContent = ticket.passenger || "---";
+    document.getElementById("ticketAge").textContent = ticket.age || "---";
+    document.getElementById("ticketContact").textContent = ticket.contact || "---";
+    document.getElementById("ticketFare").textContent = "₹" + (ticket.fare || 0);
+    const qr = document.getElementById("ticketQr");
+    document.getElementById("ticketTokenLabel").textContent = ticket.ticketToken ? "ID " + ticket.id + " • secure verification token" : "Ticket created before QR support; book again for a QR ticket.";
+    if(qr){ qr.innerHTML=""; if(ticket.ticketToken && window.QRCode) new QRCode(qr,{text:location.origin+"/api/tickets/verify?token="+encodeURIComponent(ticket.ticketToken),width:100,height:100}); }
+
+    document.getElementById("digitalTicket").style.display = "block";
+}
+
+
+function loadLatestDigitalTicket(){
+
+    const saved = localStorage.getItem("latestBusTicket");
+
+    if(!saved) return;
+
+    try{
+        const ticket = JSON.parse(saved);
+        renderDigitalTicket(ticket);
+    }catch(error){
+        console.log("Digital ticket load error:", error);
+    }
+}
+
+
+function printDigitalTicket(){
+
+    const ticket = document.getElementById("digitalTicket");
+
+    if(!ticket || ticket.style.display === "none"){
+        alert("Please confirm a booking first.");
+        return;
+    }
+
+    window.print();
+}
+
+
+function trackDigitalTicketBus(){
+
+    const saved = localStorage.getItem("latestBusTicket");
+
+    if(!saved){
+        alert("No saved ticket found.");
+        return;
+    }
+
+    try{
+        const ticket = JSON.parse(saved);
+
+        if(typeof trackBookedBus === "function"){
+            trackBookedBus(ticket.bus);
+        }else{
+            alert("Bus tracking is currently unavailable.");
+        }
+
+    }catch(error){
+        alert("Unable to load ticket details.");
+    }
+}
+
+async function sendTicketAlert(channel,automatic=false){
+    const saved=localStorage.getItem("latestBusTicket"); if(!saved){alert("No ticket to send yet.");return;}
+    const ticket=JSON.parse(saved), phone=String(ticket.contact||"").replace(/\D/g,"");
+    if(phone.length!==10){alert("Ticket needs a valid 10-digit passenger contact number.");return;}
+    const eta=mapEtaCache[ticket.bus] ?? await getChatbotETA(buses.find(b=>b.number===ticket.bus)||{distance:0,traffic:0,weather:0,previous_time:0});
+    const body=`Mini RedBus ticket ${ticket.id}: ${ticket.from} to ${ticket.to}, ${ticket.date} ${ticket.time}, seat ${ticket.seat}, fare ₹${ticket.fare}. Current estimated arrival: ${eta==null?"open Track My Bus for live ETA":eta+" minutes"}.`;
+    if(!automatic && !confirm(`Send this ticket alert by ${channel.toUpperCase()} to +91${phone}?`)) return;
+    try{
+        const response=await fetch("/api/notifications/send",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({channel,to:"+91"+phone,body})});
+        const data=await response.json();
+        if(response.ok && data.success){if(!automatic)alert("Ticket alert sent.");return;}
+    }catch(e){}
+    if(automatic){alert("Ticket is booked, but Twilio is not configured. Use the WhatsApp/SMS ticket buttons to send a message manually.");return;}
+    const encoded=encodeURIComponent(body);
+    if(channel==="whatsapp") window.open("https://wa.me/91"+phone+"?text="+encoded,"_blank","noopener");
+    else window.location.href="sms:+91"+phone+"?body="+encoded;
+    alert("Twilio is not configured; opening a prefilled message for you to send.");
+}
+
+let scannerStream=null;
+async function startTicketScanner(){
+    const result=document.getElementById("ticketScanResult"),video=document.getElementById("ticketScannerVideo");
+    if(!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia){result.textContent="This browser does not support camera QR scanning. Verify the booking ID/token through the server instead.";return;}
+    try{
+        scannerStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});video.srcObject=scannerStream;video.style.display="block";await video.play();
+        const detector=new BarcodeDetector({formats:["qr_code"]});
+        const scan=async()=>{ if(!scannerStream)return; try{const codes=await detector.detect(video);if(codes.length){
+            const url=new URL(codes[0].rawValue),token=url.searchParams.get("token")||codes[0].rawValue;
+            await renderTicketVerification(token);
+            stopTicketScanner();return;
+        }}catch(e){} requestAnimationFrame(scan);}; scan();
+    }catch(e){result.textContent="Camera permission was denied or unavailable.";stopTicketScanner();}
+}
+function stopTicketScanner(){if(scannerStream){scannerStream.getTracks().forEach(track=>track.stop());scannerStream=null;}const video=document.getElementById("ticketScannerVideo");if(video)video.style.display="none";}
+async function renderTicketVerification(token){
+    const result=document.getElementById("ticketScanResult");
+    try{const response=await fetch("/api/tickets/verify?token="+encodeURIComponent(token));const verification=await response.json();
+        result.innerHTML=verification.valid?`✅ <b>VALID</b> • ${verification.booking_id} • ${verification.passenger_name} • Seat ${verification.seat_number}<br>${verification.from_location} → ${verification.to_location} • ${verification.travel_date}`:`❌ ${verification.message||"Invalid ticket"}`;
+    }catch(e){result.textContent="Ticket verification service is unavailable.";}
+}
+function verifyManualTicket(){
+    let value=document.getElementById("ticketTokenInput").value.trim();if(!value){alert("Paste the QR token or URL first.");return;}
+    try{value=new URL(value).searchParams.get("token")||value;}catch(e){}
+    renderTicketVerification(value);
+}
+
+async function renderMyBookings(){
+    const el = document.getElementById("myBookings");
+    if(!el) return;
+
+    try{
+        const response = await fetch("/api/bookings?username=user");
+        if(!response.ok) throw new Error("Unable to load bookings.");
+
+        const bookings = await response.json();
+
+        if(!bookings.length){
+            el.innerHTML = '<div class="booking-empty">📋 No bookings yet. Your confirmed bookings will appear here.</div>';
+            return;
+        }
+
+        el.innerHTML = bookings.map(b => {
+            const statusClass = b.status === "Confirmed" ? "running" : "stopped";
+
+            return '<div class="my-booking-row">' +
+                '<div class="booking-id">' + (b.booking_id || "---") +
+                    '<div style="font-weight:600;color:#64748b;margin-top:3px">Seat ' + (b.seat_number || "---") + '</div>' +
+                '</div>' +
+                '<div><b>🚌 ' + (b.bus_name || ((buses.find(bus => bus.number === b.bus_number) || {}).name) || "Bus") + '</b>' +
+                    '<div style="color:#64748b;margin-top:3px">' + (b.from_location || "---") + ' → ' + (b.to_location || "---") + ' • ' + (b.travel_date || "---") + '</div>' +
+                '</div>' +
+                '<div><b>₹' + (b.fare || 0) + '</b>' +
+                    '<div style="color:#64748b;margin-top:3px">' + (b.status || "Unknown") + '</div>' +
+                '</div>' +
+                '<button class="track-booking" onclick="trackBookedBus(\'' + (b.bus_number || "") + '\')">📍 Track</button>' +
+                '<button class="cancel-booking" onclick="cancelBooking(\'' + (b.booking_id || "") + '\')">Cancel</button>' +
+            '</div>';
+        }).join("");
+
+    }catch(error){
+        console.error("My bookings load error:",error);
+        el.innerHTML = '<div class="booking-empty">⚠️ Could not load bookings. Make sure Flask server is running.</div>';
+    }
+}
+
+async function cancelBooking(id){
+    if(!id) return;
+
+    if(!confirm("Cancel booking " + id + "?")) return;
+
+    try{
+        const response = await fetch("/api/bookings/" + encodeURIComponent(id),{
+            method:"DELETE"
+        });
+
+        const data = await response.json();
+
+        if(!response.ok || data.success === false){
+            alert(data.message || "Booking could not be cancelled.");
+            return;
+        }
+
+        await renderMyBookings();
+
+        if(selectedBooking){
+            await renderSeats();
+        }
+
+        alert("Booking cancelled successfully.");
+
+    }catch(error){
+        console.error("Cancel booking error:",error);
+        alert("Could not connect to the Flask server.");
+    }
+}
+
+async function clearAllBookings(){
+    alert("Use the Cancel button for individual bookings. SQLite bookings are kept safely in the database.");
+}
+
+function trackBookedBus(busNumber){
+    const link = Array.from(document.querySelectorAll('.nav-link')).find(el => el.getAttribute('onclick') && el.getAttribute('onclick').includes("'mapSection'"));
+    showSection('mapSection',link);
+    setTimeout(function(){ selectMapBusByNumber(busNumber); },300);
+}
+
+initBooking();
+
+/* ======================================================
+   FIND BUS
+====================================================== */
+
+function findBus(input){
+
+let search =
+input.toLowerCase().trim();
+
+return buses.find(function(bus){
+
+return (
+
+bus.number.toLowerCase() === search ||
+
+bus.name.toLowerCase().includes(search) ||
+
+bus.location.toLowerCase().includes(search)
+
+);
+
+});
+
+}
+
+
+/* ======================================================
+   DASHBOARD PREDICTION
+====================================================== */
+
+async function predictBus(){
+
+let input =
+document.getElementById("bus").value.trim().toUpperCase();
+
+let result =
+document.getElementById("result");
+
+if(input === ""){
+
+result.innerHTML =
+"❌ Please enter a Bus Name";
+
+return;
+
+}
+
+let bus =
+findBus(input);
+
+if(!bus){
+
+result.innerHTML =
+"❌ Bus not found. Enter a valid bus name.";
+
+return;
+
+}
+
+result.innerHTML =
+"⏳ AI is predicting...";
+
+try{
+
+let response =
+await fetch("/predict",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+distance:bus.distance,
+traffic:bus.traffic,
+weather:bus.weather,
+previous_time:bus.previous_time
+
+})
+
+});
+
+let data =
+await response.json();
+
+if(data.success){
+
+result.innerHTML =
+
+"🚌 <b>" + bus.name + "</b><br>" +
+
+"📍 Location: " +
+bus.location +
+"<br>" +
+
+"🤖 AI Predicted Arrival: <b>" +
+data.predicted_time +
+" minutes</b><br>" +
+
+"📊 Status: <b>" +
+bus.status +
+"</b>";
+
+                addPredictionHistory(
+                    bus.number,
+                    bus.name,
+                    bus.location,
+                    data.predicted_time,
+                    bus.status
+                );
+
+}
+
+else{
+
+result.innerHTML =
+"❌ " + data.error;
+
+}
+
+}
+
+catch(error){
+
+result.innerHTML =
+"❌ Flask server connection error.";
+
+console.error(error);
+
+}
+
+}
+
+
+/* ======================================================
+   ML PREDICTION
+====================================================== */
+
+async function predictBusTime(){
+
+let input =
+document.getElementById("busPrediction")
+.value.trim()
+.toUpperCase();
+
+let result =
+document.getElementById("predictionResult");
+
+if(input === ""){
+
+result.innerHTML =
+"❌ Please enter a Bus Name";
+
+return;
+
+}
+
+let bus =
+findBus(input);
+
+if(!bus){
+
+result.innerHTML =
+"❌ Bus not found. Enter a valid bus name.";
+
+return;
+
+}
+
+result.innerHTML =
+"⏳ AI is predicting arrival time...";
+
+try{
+
+let response =
+await fetch("/predict",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+distance:bus.distance,
+traffic:bus.traffic,
+weather:bus.weather,
+previous_time:bus.previous_time
+
+})
+
+});
+
+let data =
+await response.json();
+
+if(data.success){
+
+result.innerHTML =
+
+"🚌 <b>" + bus.name + "</b><br><br>" +
+
+"📍 Current Location: " +
+bus.location +
+"<br>" +
+
+"🤖 AI Predicted Arrival: <b>" +
+data.predicted_time +
+" minutes</b><br>" +
+
+"📊 Current Status: <b>" +
+bus.status +
+"</b>";
+
+            addPredictionHistory(
+                bus.number,
+                bus.name,
+                bus.location,
+                data.predicted_time,
+                bus.status
+            );
+
+}
+
+else{
+
+result.innerHTML =
+"❌ Prediction Error: " +
+data.error;
+
+}
+
+}
+
+catch(error){
+
+result.innerHTML =
+"❌ Cannot connect to Flask server.";
+
+console.error(error);
+
+}
+
+}
+
+
+/* ======================================================
+   IMPROVED AI CHATBOT
+====================================================== */
+
+const chatInput = document.getElementById("chatInput");
+const chatMessages = document.getElementById("chatMessages");
+
+let lastBus = null;
+let chatBusy = false;
+let voiceReplyEnabled = false;
+
+chatInput.addEventListener("keydown", function(event){
+    if(event.key === "Enter"){
+        event.preventDefault();
+        sendMessage();
+    }
+});
+
+async function sendMessage(){
+    const message = chatInput.value.trim();
+
+    if(message === "" || chatBusy){
+        return;
+    }
+
+    addMessage(message, "user");
+    chatInput.value = "";
+
+    chatBusy = true;
+    const typing = addTypingMessage();
+
+    try{
+        const response = await getBotResponse(message);
+        typing.remove();
+        addMessage(response, "bot");
+        if(voiceReplyEnabled) speakTamilReply(response);
+    }catch(error){
+        typing.remove();
+        addMessage(
+            "Sorry, I could not process that right now. Please try asking about a bus name, location, ETA, route, or status.",
+            "bot"
+        );
+        console.error("Chatbot error:", error);
+    }finally{
+        chatBusy = false;
+        chatInput.focus();
+    }
+}
+
+function addMessage(message,type){
+    const messageDiv = document.createElement("div");
+    messageDiv.classList.add("message");
+    messageDiv.classList.add(type === "user" ? "user-message" : "bot-message");
+    messageDiv.innerHTML = message;
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function addTypingMessage(){
+    const typing = document.createElement("div");
+    typing.className = "message typing-message";
+    typing.innerHTML = "🤖 Typing...";
+    chatMessages.appendChild(typing);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return typing;
+}
+
+function quickQuestion(question){
+    chatInput.value = question;
+    sendMessage();
+}
+
+function clearChat(){
+    lastBus = null;
+    chatMessages.innerHTML = `
+        <div class="message bot-message">
+            👋 Hello! I'm your <b>AI Bus Assistant</b>.<br><br>
+            I can help you with bus locations, ETA, status, routes, delays and bus details.<br><br>
+            Ask me anything about <b>the available buses</b>.
+        </div>
+    `;
+    chatInput.focus();
+}
+
+function findBusFromMessage(text){
+    for(let i=0;i<buses.length;i++){
+        const bus = buses[i];
+
+        if(text.includes(bus.number.toLowerCase()) ||
+           text.includes(bus.name.toLowerCase()) ||
+           text.includes(bus.location.toLowerCase())){
+            return bus;
+        }
+    }
+    return null;
+}
+
+function busSummary(bus){
+    return `
+        🚌 <b>${bus.name}</b><br>
+        📍 Current Location: <b>${bus.location}</b><br>
+        📊 Status: <b>${bus.status}</b><br>
+        ⏱️ Previous travel time: <b>${bus.previous_time} minutes</b>
+    `;
+}
+
+function getRunningBuses(){
+    return buses.filter(function(bus){
+        return bus.status === "Running";
+    });
+}
+
+function getStoppedBuses(){
+    return buses.filter(function(bus){
+        return bus.status === "Stopped";
+    });
+}
+
+async function getChatbotETA(bus){
+    try{
+        const response = await fetch("/predict",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+                distance:bus.distance,
+                traffic:bus.traffic,
+                weather:bus.weather,
+                previous_time:bus.previous_time
+            })
+        });
+
+        if(!response.ok){
+            throw new Error("Prediction request failed");
+        }
+
+        const data = await response.json();
+
+        if(data.success){
+            return data.predicted_time;
+        }
+    }catch(error){
+        console.error("Chatbot ETA error:",error);
+    }
+
+    return null;
+}
+
+/* ======================================================
+   NATURAL ENGLISH CHATBOT
+====================================================== */
+
+async function getBotResponse(message){
+    const text = message.toLowerCase().trim();
+    const mentionedBus = findBusFromMessage(text);
+
+    if(/(eppo|enga|varum|irukka|irukku|pogum|chennai|bus)/i.test(text) && /(eppo|enga|varum|irukka|irukku|pogum)/i.test(text)){
+        if(mentionedBus){
+            lastBus=mentionedBus;
+            const eta=await getChatbotETA(mentionedBus);
+            return `🚌 ${mentionedBus.name} பேருந்து ${mentionedBus.location} பகுதியில் உள்ளது. ${eta===null?"இப்போது வருகை நேரத்தை கணிக்க முடியவில்லை.":`சுமார் ${eta} நிமிடங்களில் வரும் என கணிக்கப்பட்டுள்ளது.`} வரைபடத்தில் நேரடி இருப்பிடத்தையும் பார்க்கலாம்.`;
+        }
+        return "எந்த ஊரிலிருந்து எந்த ஊருக்கு செல்ல வேண்டும் என்று சொல்லுங்கள். பேருந்தின் வருகை நேரத்தைப் பார்க்க உதவுகிறேன்.";
+    }
+
+    if(mentionedBus){
+        lastBus = mentionedBus;
+    }
+
+    /* GREETING */
+    if(
+        /^(hi|hello|hey|hey frd|hi frd|hello frd|good morning|good afternoon|good evening)$/.test(text) ||
+        text.includes("how are you")
+    ){
+        return `
+            👋 Hey! I'm your <b>AI Bus Assistant</b>.<br><br>
+            I'm ready to help you with bus locations, arrival time, routes, status and delays. 🚌<br><br>
+            What would you like to know?
+        `;
+    }
+
+    /* HELP */
+    if(
+        text.includes("help") ||
+        text.includes("what can you do") ||
+        text.includes("features")
+    ){
+        return `
+            🤖 I can help you with:<br><br>
+            🚌 Bus location and details<br>
+            ⏱️ AI predicted arrival time<br>
+            🗺️ Route information<br>
+            📊 Running or stopped status<br>
+            ⚠️ Delay information<br>
+            🔎 Bus or city search<br>
+            📋 List of all 90 buses<br><br>
+            <b>Example:</b> "Where is Chennai Express?"
+        `;
+    }
+
+    /* THANKS */
+    if(text.includes("thank") || text.includes("thanks") || text === "nandri"){
+        return "You're welcome! 😄 Feel free to ask me anything about the buses. 🚌";
+    }
+
+    /* BYE */
+    if(text === "bye" || text.includes("goodbye") || text.includes("see you")){
+        return "Goodbye! 👋 Have a safe journey and feel free to come back anytime. 🚌";
+    }
+
+    /* FOLLOW-UP */
+    if(/^(yes|yeah|yep|sure|okay|ok|aama|ama|yes please|sure frd)$/.test(text)){
+        if(lastBus){
+            const eta = await getChatbotETA(lastBus);
+
+            if(eta !== null){
+                return `
+                    Sure! 👍<br><br>
+                    🚌 <b>${lastBus.name}</b><br>
+                    📍 Location: <b>${lastBus.location}</b><br>
+                    🤖 AI Predicted Arrival: <b>${eta} minutes</b><br>
+                    📊 Status: <b>${lastBus.status}</b>
+                `;
+            }
+
+            return `Sure! 👍 ${busSummary(lastBus)}<br><br>Please use the <b>Prediction</b> section for the AI arrival prediction.`;
+        }
+
+        return "Sure! 😄 Please tell me the bus name, such as <b>Chennai Express</b>, and I will check it for you.";
+    }
+
+    /* ALL BUSES */
+    if(
+        text.includes("all buses") ||
+        text.includes("bus list") ||
+        text.includes("list buses") ||
+        text.includes("show buses") ||
+        text.includes("bus names") ||
+        text.includes("how many buses")
+    ){
+        return `
+            🚌 <b>We currently have ${buses.length} buses.</b><br><br>
+            ${buses.map(function(bus){
+                return `🚌 ${bus.name} (${bus.location})`;
+            }).join("<br>")}
+        `;
+    }
+
+    /* RUNNING / STOPPED */
+    if(text.includes("running buses") || text.includes("how many running") || text.includes("which buses are running")){
+        const running = getRunningBuses();
+        return `
+            🟢 <b>${running.length} buses are currently running.</b><br><br>
+            ${running.map(function(bus){
+                return `🚌 ${bus.name}`;
+            }).join("<br>")}
+        `;
+    }
+
+    if(text.includes("stopped buses") || text.includes("how many stopped") || text.includes("which buses are stopped")){
+        const stopped = getStoppedBuses();
+        return `
+            🔴 <b>${stopped.length} buses are currently stopped.</b><br><br>
+            ${stopped.map(function(bus){
+                return `🚌 ${bus.name}`;
+            }).join("<br>")}
+        `;
+    }
+
+    /* ETA / ARRIVAL */
+    if(
+        text.includes("eta") ||
+        text.includes("arrival") ||
+        text.includes("arrive") ||
+        text.includes("when will") ||
+        text.includes("when does") ||
+        text.includes("how long")
+    ){
+        const bus = mentionedBus || lastBus;
+
+        if(bus){
+            const eta = await getChatbotETA(bus);
+
+            if(eta !== null){
+                return `
+                    ⏱️ <b>Arrival Information</b><br><br>
+                    🚌 Bus: <b>${bus.name}</b><br>
+                    📍 Location: <b>${bus.location}</b><br>
+                    🤖 AI Predicted Arrival: <b>${eta} minutes</b><br>
+                    📊 Status: <b>${bus.status}</b>
+                `;
+            }
+
+            return `⏱️ I could not get the AI prediction right now. Please use the <b>Prediction</b> section to check ${bus.name}.`;
+        }
+
+        return `⏱️ Sure! Please tell me the bus name.<br><br>Example: <b>"When will Chennai Express arrive?"</b>`;
+    }
+
+    /* LOCATION */
+    if(text.includes("location") || text.includes("where is") || text.includes("where's") || text.includes("where")){
+        const bus = mentionedBus || lastBus;
+
+        if(bus){
+            return `
+                📍 <b>${bus.name}</b> is currently listed at <b>${bus.location}</b>.<br><br>
+                🚦 Status: <b>${bus.status}</b><br><br>
+                You can also view it on the <b>Live Map</b>.
+            `;
+        }
+
+        return `📍 Please tell me the bus name or city.<br><br>Example: <b>"Where is Chennai Express?"</b>`;
+    }
+
+    /* ROUTE */
+    if(text.includes("route") || text.includes("routes") || text.includes("go to") || text.includes("travels to")){
+        const bus = mentionedBus || lastBus;
+
+        if(bus){
+            return `
+                🗺️ <b>${bus.name}</b><br><br>
+                📍 Current listed location: <b>${bus.location}</b>.<br><br>
+                The current project data does not contain the complete stop-by-stop route. Please check the <b>Live Map</b> for its location.
+            `;
+        }
+
+        return `🗺️ We have <b>90 buses</b> from the available buses.<br><br>Tell me a bus name or city and I'll show the available information.`;
+    }
+
+    /* DELAY */
+    if(text.includes("delay") || text.includes("delayed") || text.includes("late")){
+        const bus = mentionedBus || lastBus;
+
+        if(bus){
+            return `
+                ⚠️ <b>${bus.name}</b><br><br>
+                Traffic and weather can affect arrival time.<br>
+                📊 Current Status: <b>${bus.status}</b><br><br>
+                🤖 Use the <b>Prediction</b> section for the AI arrival estimate.
+            `;
+        }
+
+        return `⚠️ Bus arrival time can change because of traffic and weather conditions.<br><br>Tell me a bus name to check its details.`;
+    }
+
+    /* STATUS */
+    if(text.includes("status") || text.includes("running") || text.includes("stopped")){
+        if(lastBus){
+            return `
+                📊 <b>${lastBus.name}</b><br><br>
+                📍 Location: <b>${lastBus.location}</b><br>
+                🚦 Current Status: <b>${lastBus.status}</b>
+            `;
+        }
+
+        return `
+            📊 <b>Current Bus Status</b><br><br>
+            🟢 Running: <b>${getRunningBuses().length}</b><br>
+            🔴 Stopped: <b>${getStoppedBuses().length}</b><br>
+            🚌 Total: <b>${buses.length}</b><br><br>
+            Ask me about a specific bus, for example <b>"Chennai Express status"</b>.
+        `;
+    }
+
+    /* DIRECT BUS DETAILS */
+    if(mentionedBus){
+        return `
+            ${busSummary(mentionedBus)}<br><br>
+            What would you like to know — <b>location, ETA, route, or status?</b>
+        `;
+    }
+
+    /* DEFAULT */
+    return `
+        🤖 I'm here to help! I didn't quite understand that question.<br><br>
+        Try asking:<br>
+        🚌 <b>Where is Chennai Express?</b><br>
+        ⏱️ <b>When will Chennai Express arrive?</b><br>
+        📊 <b>Is Chennai Express running?</b><br>
+        🗺️ <b>What is the route of Chennai Express?</b><br>
+        ⚠️ <b>Is Chennai Express delayed?</b><br>
+        📋 <b>Show all buses</b>
+    `;
+}
+
+function toggleVoiceReply(){
+    voiceReplyEnabled=!voiceReplyEnabled;
+    const button=document.getElementById("voiceReplyToggle");
+    button.textContent=voiceReplyEnabled?"🔊 Voice reply: On":"🔊 Voice reply: Off";
+    if(!voiceReplyEnabled && window.speechSynthesis) speechSynthesis.cancel();
+}
+function speakTamilReply(html){
+    if(!window.speechSynthesis)return;
+    const utterance=new SpeechSynthesisUtterance(String(html).replace(/<[^>]*>/g," ").replace(/&nbsp;/g," "));
+    utterance.lang="ta-IN"; utterance.rate=0.95; speechSynthesis.cancel(); speechSynthesis.speak(utterance);
+}
+function startTamilVoice(){
+    const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!Recognition){alert("Voice input is not supported in this browser. Try Chrome or Edge.");return;}
+    const recognition=new Recognition(); recognition.lang="ta-IN"; recognition.interimResults=false;
+    recognition.onresult=event=>{chatInput.value=event.results[0][0].transcript;sendMessage();};
+    recognition.onerror=()=>addMessage("மன்னிக்கவும், குரலை தெளிவாக கேட்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.","bot");
+    recognition.start();
+}
+
+/* ======================================================
+   PREDICTION HISTORY
+====================================================== */
+
+function addPredictionHistory(
+    busNumber,
+    busName,
+    location,
+    predictedTime,
+    status
+){
+
+    let history =
+        JSON.parse(
+            localStorage.getItem("predictionHistory")
+        ) || [];
+
+    history.unshift({
+
+        busNumber: busNumber,
+        busName: busName,
+        location: location,
+        predictedTime: predictedTime,
+        status: status,
+        date: new Date().toLocaleString()
+
+    });
+
+    /* Keep latest 20 predictions */
+
+    history = history.slice(0,20);
+
+    localStorage.setItem(
+        "predictionHistory",
+        JSON.stringify(history)
+    );
+
+    displayPredictionHistory();
+
+    updatePredictionCount();
+}
+
+
+function displayPredictionHistory(){
+
+    let history =
+        JSON.parse(
+            localStorage.getItem("predictionHistory")
+        ) || [];
+
+    let container =
+        document.getElementById("predictionHistory");
+
+    if(!container){
+        return;
+    }
+
+    if(history.length === 0){
+
+        container.innerHTML =
+            "<p>No prediction history yet.</p>";
+
+        return;
+    }
+
+    container.innerHTML =
+        history.map(function(item){
+
+            return `
+                <div class="report-item">
+
+                    🚌 <b>
+                    ${item.busName}
+                    </b>
+
+                    <br>
+
+                    📍 Location: ${item.location}
+
+                    <br>
+
+                    🤖 AI Predicted Arrival:
+                    <b>${item.predictedTime} minutes</b>
+
+                    <br>
+
+                    📊 Status:
+                    <b>${item.status}</b>
+
+                    <br>
+
+                    🕒 ${item.date}
+
+                </div>
+            `;
+
+        }).join("");
+}
+
+
+function clearPredictionHistory(){
+
+    localStorage.removeItem(
+        "predictionHistory"
+    );
+
+    displayPredictionHistory();
+
+    updatePredictionCount();
+}
+
+
+function updatePredictionCount(){
+
+    let history =
+        JSON.parse(
+            localStorage.getItem("predictionHistory")
+        ) || [];
+
+    let countElement =
+        document.getElementById("predictionCount");
+
+    if(countElement){
+
+        countElement.innerText =
+            history.length;
+    }
+}
+
+
+displayPredictionHistory();
+
+updatePredictionCount();
+
+
+/* ======================================================
+   PROFESSIONAL DASHBOARD UI
+====================================================== */
+function animateNumber(elementId, target, duration){
+    const el = document.getElementById(elementId);
+    if(!el) return;
+    const start = 0;
+    const startTime = performance.now();
+    function tick(now){
+        const progress = Math.min((now-startTime)/duration,1);
+        const value = Math.floor(start + (target-start)*progress);
+        el.innerText = value;
+        if(progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+}
+
+const dashboardEtaCache = {};
+
+async function getDashboardBusETA(bus){
+    if(dashboardEtaCache[bus.number] !== undefined){
+        return dashboardEtaCache[bus.number];
+    }
+
+    try{
+        const response = await fetch("/predict",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+                distance:bus.distance,
+                traffic:bus.traffic,
+                weather:bus.weather,
+                previous_time:bus.previous_time
+            })
+        });
+
+        if(response.ok){
+            const data = await response.json();
+            if(data.success){
+                dashboardEtaCache[bus.number] = data.predicted_time;
+                return data.predicted_time;
+            }
+        }
+    }catch(error){
+        console.error("Dashboard ETA error:",error);
+    }
+
+    dashboardEtaCache[bus.number] = bus.previous_time;
+    return bus.previous_time;
+}
+
+function renderDashboardBusStatus(list){
+    const container = document.getElementById("dashboardBusStatus");
+    const countEl = document.getElementById("liveBusCount");
+    if(!container) return;
+
+    const busesToShow = Array.isArray(list) ? list : buses;
+
+    if(countEl){
+        countEl.innerText = busesToShow.length + (busesToShow.length === 1 ? " Bus" : " Buses");
+    }
+
+    if(busesToShow.length === 0){
+        container.innerHTML = '<div class="live-empty">🔎 No buses found. Try a bus name, Chennai, Coimbatore, etc.</div>';
+        return;
+    }
+
+    container.innerHTML = busesToShow.map(function(bus){
+        const statusClass = bus.status === "Running" ? "status-running" : "status-stopped";
+        const etaText = bus.status === "Stopped" ? "—" : "⏳ Loading";
+        return `<div class="live-row" data-bus-number="${bus.number}">
+            <span class="route">🚌 ${bus.name}</span>
+            <span class="muted location-cell">📍 ${bus.location}</span>
+            <span class="status-badge ${statusClass}">● ${bus.status}</span>
+            <span class="eta-badge ${bus.status === "Running" ? "eta-loading" : ""}" id="eta-${bus.number}">⏱️ ${etaText}</span>
+        </div>`;
+    }).join("");
+
+    busesToShow.forEach(function(bus){
+        if(bus.status !== "Running") return;
+        getDashboardBusETA(bus).then(function(eta){
+            const etaEl = document.getElementById("eta-" + bus.number);
+            if(etaEl){
+                etaEl.classList.remove("eta-loading");
+                etaEl.innerText = "⏱️ " + eta + " min";
+            }
+        });
+    });
+}
+
+function filterDashboardBuses(query){
+    const text = (query || "").toLowerCase().trim();
+
+    if(!text){
+        renderDashboardBusStatus(buses);
+        return;
+    }
+
+    const filtered = buses.filter(function(bus){
+        return bus.number.toLowerCase().includes(text) ||
+               bus.name.toLowerCase().includes(text) ||
+               bus.location.toLowerCase().includes(text);
+    });
+
+    renderDashboardBusStatus(filtered);
+}
+
+
+function updateReportChart(){
+    const running=buses.filter(b=>b.status==="Running").length;
+    const stopped=buses.filter(b=>b.status==="Stopped").length;
+    const history=JSON.parse(localStorage.getItem("predictionHistory"))||[];
+    const predictions=Math.max(285,history.length);
+    const max=Math.max(predictions,25);
+    const values=[running,stopped,predictions];
+    const bars=["barRunning","barStopped","barPredictions"];
+    const labels=["chartRunningValue","chartStoppedValue","chartPredictionValue"];
+    values.forEach(function(value,i){const bar=document.getElementById(bars[i]);const label=document.getElementById(labels[i]);if(bar)bar.style.height=Math.max(8,(value/max)*100)+"%";if(label)label.innerText=value;});
+    const total=buses.length||1;
+    const util=Math.round((running/total)*100);
+    const stop=Math.round((stopped/total)*100);
+    const uv=document.getElementById("fleetUtilValue"),ub=document.getElementById("fleetUtilBar"),sv=document.getElementById("fleetStopValue"),sb=document.getElementById("fleetStopBar");
+    if(uv)uv.innerText=util+"%"; if(ub)ub.style.width=util+"%"; if(sv)sv.innerText=stop+"%"; if(sb)sb.style.width=stop+"%";
+    renderProfessionalHistory();
+}
+
+
+function renderDashboardActivity(){
+    const el=document.getElementById("dashboardActivityList");
+    if(!el) return;
+    const items=[
+        {icon:"🟢",title:"Fleet monitoring active",sub:"22 buses currently running",time:"NOW"},
+        {icon:"🗺️",title:"Live map synchronized",sub:"90 buses available for tracking",time:"LIVE"},
+        {icon:"🤖",title:"AI prediction engine ready",sub:"Arrival model available",time:"READY"},
+        {icon:"💬",title:"AI Assistant online",sub:"Location, ETA and status support",time:"ONLINE"}
+    ];
+    el.innerHTML=items.map(x=>`<div class="activity-row"><div class="activity-icon">${x.icon}</div><div><div class="activity-title">${x.title}</div><div class="activity-sub">${x.sub}</div></div><div class="activity-time">${x.time}</div></div>`).join("");
+}
+
+function renderProfessionalHistory(){
+    const el=document.getElementById("professionalHistoryTable");
+    if(!el) return;
+    const history=JSON.parse(localStorage.getItem("predictionHistory"))||[];
+    const metric=document.getElementById("historyMetricValue");
+    const metricBar=document.getElementById("historyMetricBar");
+    if(metric) metric.innerText=history.length;
+    if(metricBar) metricBar.style.width=Math.min(100,Math.max(8,(history.length/20)*100))+"%";
+    if(!history.length){el.innerHTML='<p style="color:#64748b;font-size:11px">No prediction history yet. Run an AI prediction to see results here.</p>';return;}
+    el.innerHTML='<table class="report-table"><thead><tr><th>Bus</th><th>Location</th><th>AI ETA</th><th>Status</th><th>Time</th></tr></thead><tbody>'+history.slice(0,10).map(item=>`<tr><td><b>${item.busName}</b></td><td>${item.location}</td><td><b>${item.predictedTime} min</b></td><td><span class="mini-status ${item.status==='Running'?'mini-running':'mini-stopped'}">● ${item.status}</span></td><td>${item.date}</td></tr>`).join("")+'</tbody></table>';
+}
+
+function initProfessionalDashboard(){
+    const running = buses.filter(b => b.status === "Running").length;
+    const stopped = buses.filter(b => b.status === "Stopped").length;
+    animateNumber("totalBusCount",buses.length,600);
+    animateNumber("runningCount",running,700);
+    animateNumber("predictionCardCount",285,800);
+    animateNumber("activeUsersCount",18,600);
+    renderDashboardBusStatus(buses);
+    renderDashboardActivity();
+    renderProfessionalHistory();
+    updateReportChart();
+}
+
+/* ======================================================
+   ENHANCED LEAFLET LIVE MAP
+====================================================== */
+
+let map = L.map("map", { zoomControl:true }).setView([11.1271,78.6569],7);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom:19,
+    attribution:"&copy; OpenStreetMap contributors"
+}).addTo(map);
+
+const mapMarkers = {};
+const mapRoutes = {};
+const mapEtaCache = {};
+const mapBasePositions = {};
+let selectedMapBus = null;
+let mapRefreshTimer = null;
+
+buses.forEach(function(bus,index){
+    mapBasePositions[bus.number] = {lat:bus.lat,lng:bus.lng};
+});
+
+function getMapETA(bus){
+    if(bus.status === "Stopped") return Promise.resolve(null);
+    if(mapEtaCache[bus.number] !== undefined) return Promise.resolve(mapEtaCache[bus.number]);
+
+    return fetch("/predict",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+            distance:bus.distance,
+            traffic:bus.traffic,
+            weather:bus.weather,
+            previous_time:bus.previous_time
+        })
+    }).then(function(response){
+        if(!response.ok) throw new Error("Prediction server error");
+        return response.json();
+    }).then(function(data){
+        const eta = data.success ? data.predicted_time : bus.previous_time;
+        mapEtaCache[bus.number] = eta;
+        return eta;
+    }).catch(function(){
+        mapEtaCache[bus.number] = bus.previous_time;
+        return bus.previous_time;
+    });
+}
+
+function markerIcon(bus){
+    const statusClass = bus.status === "Running" ? "marker-running" : "marker-stopped";
+    return L.divIcon({
+        className:"map-marker-wrap",
+        html:'<div class="custom-bus-marker '+statusClass+'"><span class="marker-bus">🚌</span></div>',
+        iconSize:[42,42],
+        iconAnchor:[21,42],
+        popupAnchor:[0,-38]
+    });
+}
+
+function routePoints(bus, index){
+    const p = mapBasePositions[bus.number];
+    const d = 0.10 + (index % 4) * 0.025;
+    const direction = index % 2 === 0 ? 1 : -1;
+    return [
+        [p.lat - d * .55, p.lng - d * direction],
+        [p.lat - d * .15, p.lng - d * .25 * direction],
+        [p.lat, p.lng],
+        [p.lat + d * .45, p.lng + d * .8 * direction]
+    ];
+}
+
+function drawBusRoute(bus,index){
+    if(mapRoutes[bus.number]) map.removeLayer(mapRoutes[bus.number]);
+    const className = bus.status === "Running" ? "route-line-running" : "route-line-stopped";
+    mapRoutes[bus.number] = L.polyline(routePoints(bus,index),{
+        color: bus.status === "Running" ? "#2563eb" : "#94a3b8",
+        weight:4,
+        opacity: bus.status === "Running" ? .72 : .42,
+        className:className
+    }).addTo(map);
+}
+
+function popupHtml(bus,eta){
+    const statusClass = bus.status === "Running" ? "#15803d" : "#b91c1c";
+    return '<div class="map-popup-title">🚌 '+bus.name+'</div>'+
+           '<div>📍 <b>'+bus.location+'</b></div>'+
+           '<div class="map-popup-status" style="color:'+statusClass+'">● '+bus.status+'</div>'+
+           '<div class="map-popup-eta">⏱️ ETA: '+(eta === null ? 'Stopped' : eta+' min')+'</div>'+
+           '<div style="margin-top:5px;color:#64748b">🚦 Traffic: Level '+bus.traffic+'</div>';
+}
+
+function selectMapBus(bus){
+    selectedMapBus = bus.number;
+    map.setView([bus.lat,bus.lng], Math.max(map.getZoom(),9), {animate:true});
+    renderMapDetail(bus);
+    if(mapMarkers[bus.number]) mapMarkers[bus.number].openPopup();
+}
+
+function renderMapDetail(bus){
+    const card = document.getElementById("mapDetailCard");
+    if(!card) return;
+    const statusClass = bus.status === "Running" ? "detail-running" : "detail-stopped";
+    const eta = bus.status === "Stopped" ? null : (mapEtaCache[bus.number] || "Loading...");
+    card.innerHTML = '<div class="bus-detail-head">'+
+        '<div class="bus-detail-id"><div class="detail-bus-icon">🚌</div><div><div class="detail-bus-id">'+bus.name+'</div><div class="detail-route">🚌 Smart Bus</div></div></div>'+
+        '<span class="detail-status '+statusClass+'">● '+bus.status+'</span></div>'+
+        '<div class="detail-grid">'+
+        '<div class="detail-item"><small>📍 Current Location</small><b>'+bus.location+'</b></div>'+ 
+        '<div class="detail-item"><small>📏 Distance</small><b>'+bus.distance+' km</b></div>'+ 
+        '<div class="detail-item"><small>🚦 Traffic</small><b>Level '+bus.traffic+'</b></div>'+ 
+        '<div class="detail-item"><small>🌤️ Weather</small><b>Level '+bus.weather+'</b></div>'+ 
+        '</div>'+ 
+        '<div class="detail-eta"><small>AI PREDICTED ARRIVAL</small><b>'+ (eta === null ? '—' : (eta === 'Loading...' ? '⏳ Loading...' : '⏱️ '+eta+' min')) +'</b></div>'+
+        '<button class="map-reset-btn" style="width:100%;margin-top:10px" onclick="focusSelectedBus()">📍 Focus Bus</button>';
+
+    if(bus.status === "Running" && !mapEtaCache[bus.number]){
+        getMapETA(bus).then(function(value){
+            if(selectedMapBus === bus.number) renderMapDetail(bus);
+            if(mapMarkers[bus.number]) mapMarkers[bus.number].setPopupContent(popupHtml(bus,value));
+        });
+    }
+}
+
+function focusSelectedBus(){
+    if(selectedMapBus && mapMarkers[selectedMapBus]){
+        const bus = buses.find(function(b){return b.number === selectedMapBus;});
+        if(bus) selectMapBus(bus);
+    }
+}
+
+function createMapBus(bus,index){
+    const marker = L.marker([bus.lat,bus.lng],{icon:markerIcon(bus),title:bus.name}).addTo(map);
+    mapMarkers[bus.number] = marker;
+    drawBusRoute(bus,index);
+    marker.bindPopup(popupHtml(bus,bus.status === "Stopped" ? null : (mapEtaCache[bus.number] || "Loading...")));
+    marker.on("click",function(){ selectMapBus(bus); });
+    if(bus.status === "Running"){
+        getMapETA(bus).then(function(eta){
+            marker.setPopupContent(popupHtml(bus,eta));
+            if(selectedMapBus === bus.number) renderMapDetail(bus);
+        });
+    }
+}
+
+buses.forEach(function(bus,index){ createMapBus(bus,index); });
+
+/* Start smooth movement after all markers/routes are created */
+animateBuses();
+
+function updateMapCounts(){
+    const running = buses.filter(function(b){return b.status === "Running";}).length;
+    const stopped = buses.filter(function(b){return b.status === "Stopped";}).length;
+    const rc = document.getElementById("mapRunningCount");
+    const sc = document.getElementById("mapStoppedCount");
+    if(rc) rc.innerText = running;
+    if(sc) sc.innerText = stopped;
+    const r = document.getElementById("runningCount");
+    const rr = document.getElementById("reportRunning");
+    const rs = document.getElementById("reportStopped");
+    if(r) r.innerText = running;
+    if(rr) rr.innerText = running;
+    if(rs) rs.innerText = stopped;
+}
+
+function renderMapBusList(list){
+    const container = document.getElementById("busStatusList");
+    const count = document.getElementById("mapBusListCount");
+    if(!container) return;
+    const items = Array.isArray(list) ? list : buses;
+    if(count) count.innerText = items.length + (items.length === 1 ? " Bus" : " Buses");
+    if(!items.length){
+        container.innerHTML = '<div class="live-empty">🔎 No buses found.</div>';
+        return;
+    }
+    container.innerHTML = items.map(function(bus){
+        const eta = bus.status === "Stopped" ? "—" : (mapEtaCache[bus.number] ? "⏱️ "+mapEtaCache[bus.number]+" min" : "⏳ Loading");
+        const statusClass = bus.status === "Running" ? "status-running" : "status-stopped";
+        return '<div class="map-bus-item" onclick="selectMapBusByNumber(\''+bus.number+'\')">'+
+            '<div class="map-bus-icon">🚌</div>'+ 
+            '<div><div class="map-bus-name">'+bus.name+'</div><div class="map-bus-location">📍 '+bus.location+'</div></div>'+ 
+            '<div class="map-bus-right"><span class="map-bus-status '+statusClass+'">● '+bus.status+'</span><span class="map-bus-eta">'+eta+'</span></div>'+
+            '</div>';
+    }).join("");
+}
+
+function selectMapBusByNumber(number){
+    const bus = buses.find(function(b){return b.number === number;});
+    if(bus) selectMapBus(bus);
+}
+
+function filterMapBuses(query){
+    const q = (query || "").toLowerCase().trim();
+    const filtered = q ? buses.filter(function(bus){
+        return bus.number.toLowerCase().includes(q) || bus.name.toLowerCase().includes(q) || bus.location.toLowerCase().includes(q);
+    }) : buses;
+    buses.forEach(function(bus){
+        const visible = filtered.some(function(item){return item.number === bus.number;});
+        if(mapMarkers[bus.number]){
+            if(visible && !map.hasLayer(mapMarkers[bus.number])) mapMarkers[bus.number].addTo(map);
+            if(!visible && map.hasLayer(mapMarkers[bus.number])) map.removeLayer(mapMarkers[bus.number]);
+        }
+        if(mapRoutes[bus.number]){
+            if(visible && !map.hasLayer(mapRoutes[bus.number])) mapRoutes[bus.number].addTo(map);
+            if(!visible && map.hasLayer(mapRoutes[bus.number])) map.removeLayer(mapRoutes[bus.number]);
+        }
+    });
+    renderMapBusList(filtered);
+}
+
+function resetMapView(){
+    const input = document.getElementById("mapBusSearch");
+    if(input) input.value = "";
+    buses.forEach(function(bus){
+        if(mapMarkers[bus.number] && !map.hasLayer(mapMarkers[bus.number])) mapMarkers[bus.number].addTo(map);
+        if(mapRoutes[bus.number] && !map.hasLayer(mapRoutes[bus.number])) mapRoutes[bus.number].addTo(map);
+    });
+    map.setView([11.1271,78.6569],7,{animate:true});
+    renderMapBusList(buses);
+}
+
+/* ======================================================
+   SMOOTH LIVE BUS MOVEMENT
+====================================================== */
+
+const busMovementState = {};
+let smoothAnimationFrame = null;
+
+buses.forEach(function(bus,index){
+    if(bus.status !== "Running") return;
+    const points = routePoints(bus,index);
+    busMovementState[bus.number] = {
+        points: points,
+        segment: 2,
+        progress: 0.02
+    };
+});
+
+function interpolatePoint(start,end,progress){
+    return [
+        start[0] + (end[0] - start[0]) * progress,
+        start[1] + (end[1] - start[1]) * progress
+    ];
+}
+
+function animateBuses(){
+    buses.forEach(function(bus,index){
+        if(bus.status !== "Running") return;
+        const state = busMovementState[bus.number];
+        if(!state) return;
+
+        const points = state.points;
+        const start = points[state.segment - 1];
+        const end = points[state.segment];
+        if(!start || !end) return;
+
+        state.progress += 0.0009;
+        if(state.progress >= 1){
+            state.progress = 0;
+            state.segment++;
+            if(state.segment >= points.length) state.segment = 1;
+        }
+
+        const position = interpolatePoint(start,end,state.progress);
+        bus.lat = position[0];
+        bus.lng = position[1];
+
+        if(mapMarkers[bus.number]){
+            mapMarkers[bus.number].setLatLng([bus.lat,bus.lng]);
+            mapMarkers[bus.number].setPopupContent(popupHtml(bus,mapEtaCache[bus.number] || "Loading..."));
+        }
+
+        if(selectedMapBus === bus.number){
+            renderMapDetail(bus);
+        }
+    });
+    smoothAnimationFrame = requestAnimationFrame(animateBuses);
+}
+
+function simulateMapRefresh(){
+    /* Periodic refresh keeps ETA, popup and list data fresh without moving
+       the marker in jumps. Marker movement is handled by requestAnimationFrame. */
+    buses.forEach(function(bus){
+        if(bus.status === "Running" && mapMarkers[bus.number]){
+            mapMarkers[bus.number].setPopupContent(popupHtml(bus,mapEtaCache[bus.number] || "Loading..."));
+        }
+    });
+    if(selectedMapBus){
+        const selected = buses.find(function(b){return b.number === selectedMapBus;});
+        if(selected) renderMapDetail(selected);
+    }
+    const currentSearch = (document.getElementById("mapBusSearch") || {value:""}).value || "";
+    if(currentSearch.trim()) filterMapBuses(currentSearch);
+    else renderMapBusList(buses);
+}
+
+function startMapAutoRefresh(){
+    if(mapRefreshTimer) clearInterval(mapRefreshTimer);
+    mapRefreshTimer = setInterval(function(){
+        buses.forEach(function(bus){
+            if(bus.status !== "Running") return;
+            if(mapEtaCache[bus.number] !== undefined){
+                mapEtaCache[bus.number] = Math.max(1,Number(mapEtaCache[bus.number]) - 0.2);
+                mapEtaCache[bus.number] = Number(mapEtaCache[bus.number].toFixed(1));
+            }
+        });
+        simulateMapRefresh();
+    },10000);
+}
+
+updateMapCounts();
+renderMapBusList(buses);
+startMapAutoRefresh();
+
+</script>
+
+<script>
+/* Mini RedBus booking entry point: default user view opens the booking experience. */
+document.addEventListener("DOMContentLoaded", function(){
+    const travelDate = document.getElementById("bookingDate");
+    if(travelDate){
+        const now = new Date();
+        const localDate = new Date(now.getTime() - now.getTimezoneOffset()*60000).toISOString().slice(0,10);
+        travelDate.min = localDate;
+        if(!travelDate.value) travelDate.value = localDate;
+    }
+});
+</script>
+</body>
+</html>
